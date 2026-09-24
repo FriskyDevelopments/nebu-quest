@@ -335,13 +335,7 @@
         continue;
       }
       if (node.tagName === 'footer') {
-        const dst = document.querySelector('body > footer, footer');
-        if (dst && isEmptyMount(dst)) {
-          if (node.className) dst.className = node.className;
-          dst.replaceChildren(...node.childNodes);
-        } else if (main && !document.querySelector('footer.footer')) {
-          main.after(node);
-        }
+        // Footer is inlined in index.html; nothing to mount.
         anchor = document.querySelector('footer') || anchor;
         continue;
       }
