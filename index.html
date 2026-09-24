@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0B001A">
+  <title>NEBU — Set the scene.</title>
+  <meta name="description" content="Your scene. Your sound. Your people. Prepare camera, screen and video, balance your audio, and bring people into your browser studio with NEBU.">
+  <link rel="canonical" href="https://nebu.quest/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NEBU">
+  <meta property="og:title" content="NEBU — Set the scene.">
+  <meta property="og:description" content="Your scene. Your sound. Your people. A browser studio for the things you want to put out into the world.">
+  <meta property="og:url" content="https://nebu.quest/">
+  <meta property="og:image" content="https://nebu.quest/assets/nebu-social.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="NEBU. Set the scene. Your scene. Your sound. Your people.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="NEBU — Set the scene.">
+  <meta name="twitter:description" content="Your scene. Your sound. Your people. Your browser studio.">
+  <meta name="twitter:image" content="https://nebu.quest/assets/nebu-social.png">
+  <link rel="icon" type="image/svg+xml" href="assets/nebu-icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Manrope:wght@400..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"NEBU","url":"https://nebu.quest/","description":"A browser studio for camera, screen, video, sound and rooms.","publisher":{"@type":"Organization","name":"FriskyDev","url":"https://friskydev.com"}}</script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <svg class="svg-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+    <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="external" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6h12v12"/></symbol>
+    <symbol id="star" viewBox="0 0 40 40"><path d="M20 0 24 13 35 5 27 16 40 20 27 24 35 35 24 27 20 40 16 27 5 35 13 24 0 20 13 16 5 5 16 13Z" fill="currentColor" stroke="none"/></symbol>
+  </defs></svg>
+
+  <header class="header">
+    <div class="container nav-wrap">
+      <a class="logo" href="#" aria-label="NEBU home"><img src="assets/nebu-wordmark-paper.svg" width="148" height="34" alt="NEBU"></a>
+      <button class="menu-toggle" type="button" aria-controls="navigation" aria-expanded="false"><span>Menu</span><span class="menu-lines" aria-hidden="true"></span></button>
+      <nav id="navigation" aria-label="Main navigation">
+        <a href="#features">The studio</a>
+        <a href="#steps">Your kind of live</a>
+        <a href="#faq">Good to know</a>
+        <a class="button button-yellow nav-cta" href="https://vc.friskydev.com/">Open studio <svg class="icon" aria-hidden="true"><use href="#external"/></svg></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero container" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> YOUR BROWSER. YOUR STAGE.</p>
+        <h1 id="hero-title">Set the<br><span>scene.</span><svg class="title-star" aria-hidden="true"><use href="#star"/></svg></h1>
+        <p class="hero-description">Your scene. Your sound. Your people.<br>A browser studio for the things you want to put out into the world.</p>
+        <div class="hero-actions">
+          <a class="button button-yellow" href="https://vc.friskydev.com/">Open your studio <svg class="icon" aria-hidden="true"><use href="#external"/></svg></a>
+          <a class="text-link" href="#features">Take a look around <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a>
+        </div>
+        <p class="hero-note">Camera, screen, sound. Start with what you have.</p>
+      </div>
+
+      <div class="hero-art hero-scene">
+        <div id="scene-hero" role="img" aria-label="Live animated NEBU scene. Drag to orbit."></div>
+        <p class="scene-hud mono" aria-hidden="true">LIVE SCENE — DRAG TO ORBIT</p>
+      </div>
+    </section>
+
+    <div class="signal-strip" aria-hidden="true"><!-- TRACK 2/4: signal-strip content mounts here --></div>
+
+    <section id="features" aria-label="The studio"><!-- TRACK 4: features content mounts here --></section>
+
+    <section id="steps" aria-label="Your kind of live"><!-- TRACK 4: steps content mounts here --></section>
+
+    <section id="faq" aria-label="Good to know"><!-- TRACK 4: faq content mounts here --></section>
+
+    <section id="live-room" aria-label="Try live rooms"><!-- TRACK 5: room widget mounts here -->
+      <div class="container"><div id="room-widget"></div></div>
+    </section>
+  </main>
+
+  <footer><!-- TRACK 4: footer content mounts here --></footer>
+  <noscript><p style="padding:24px;text-align:center">NEBU is a browser studio. Enable JavaScript to browse the sections, or <a href="https://vc.friskydev.com/">open your studio</a>.</p></noscript>
+  <script src="scene.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="room.js" defer></script>
+</body>
+</html>

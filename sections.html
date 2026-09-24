@@ -1,0 +1,72 @@
+<!-- NEBU.QUEST — Track 4: sections + interactivity (markup fragments).
+  Loaded by app.js via fetch('sections.html'): <section> / .signal-strip nodes go
+  into <main id="main">, <footer> is placed after <main>. May instead be inlined
+  directly into index.html (then app.js skips the fetch and just wires behavior).
+  Copy is the NEBU brand kit verbatim; section anchors are #features, #steps, #faq.
+  All studio CTAs point to https://vc.friskydev.com/. -->
+<svg class="svg-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+  <symbol id="star" viewBox="0 0 40 40"><path d="M20 0 24 13 35 5 27 16 40 20 27 24 35 35 24 27 20 40 16 27 5 35 13 24 0 20 13 16 5 5 16 13Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="external" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6h12v12"/></symbol>
+  <symbol id="camera" viewBox="0 0 32 32"><rect x="3" y="7" width="18" height="18" rx="4"/><path d="m21 13 8-5v16l-8-5"/></symbol>
+  <symbol id="sound" viewBox="0 0 32 32"><path d="M5 13v6M11 6v20M17 10v12M23 3v26M29 13v6"/></symbol>
+  <symbol id="people" viewBox="0 0 32 32"><circle cx="12" cy="10" r="5"/><path d="M2 28v-3a10 10 0 0 1 20 0v3M23 5a5 5 0 0 1 0 10M25 20a8 8 0 0 1 5 8"/></symbol>
+  <symbol id="record" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12"/><circle cx="16" cy="16" r="5" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="layers" viewBox="0 0 32 32"><path d="m16 4 13 7-13 7L3 11 16 4ZM3 17l13 7 13-7M3 23l13 7 13-7"/></symbol>
+</defs></svg>
+
+<div class="signal-strip" aria-hidden="true"><div class="marquee"><div class="marquee-track"><div class="marquee-group"><span>YOUR CAMERA</span><svg><use href="#star"/></svg><span>YOUR MUSIC</span><svg><use href="#star"/></svg><span>YOUR ROOM</span><svg><use href="#star"/></svg><span>YOUR NEBU</span><svg><use href="#star"/></svg></div><div class="marquee-group"><span>YOUR CAMERA</span><svg><use href="#star"/></svg><span>YOUR MUSIC</span><svg><use href="#star"/></svg><span>YOUR ROOM</span><svg><use href="#star"/></svg><span>YOUR NEBU</span><svg><use href="#star"/></svg></div></div></div></div>
+
+<section class="studio-section section container" id="features" aria-labelledby="features-title">
+  <div class="section-heading"><div><p class="eyebrow">01 / MEET YOUR STUDIO</p><h2 id="features-title">All the parts.<br><span class="muted-heading">One place to play.</span></h2></div><p>Bring your picture, sound and people together. Check your scene before you share it.</p></div>
+  <div class="feature-tabs" role="tablist" aria-label="Explore the studio">
+    <button class="feature-tab tab-yellow" id="tab-picture" type="button" role="tab" aria-selected="true" aria-controls="feature-panel" data-feature="picture"><svg aria-hidden="true"><use href="#camera"/></svg><span>Studio<small>Find your frame.</small></span><svg class="tab-arrow" aria-hidden="true"><use href="#external"/></svg></button>
+    <button class="feature-tab tab-violet" id="tab-sound" type="button" role="tab" aria-selected="false" aria-controls="feature-panel" tabindex="-1" data-feature="sound"><svg aria-hidden="true"><use href="#sound"/></svg><span>Sound<small>Set the mood.</small></span><svg class="tab-arrow" aria-hidden="true"><use href="#external"/></svg></button>
+    <button class="feature-tab tab-cyan" id="tab-people" type="button" role="tab" aria-selected="false" aria-controls="feature-panel" tabindex="-1" data-feature="people"><svg aria-hidden="true"><use href="#people"/></svg><span>Rooms<small>Bring people in.</small></span><svg class="tab-arrow" aria-hidden="true"><use href="#external"/></svg></button>
+    <button class="feature-tab tab-paper" id="tab-record" type="button" role="tab" aria-selected="false" aria-controls="feature-panel" tabindex="-1" data-feature="record"><svg aria-hidden="true"><use href="#record"/></svg><span>Record<small>Keep the good bits.</small></span><svg class="tab-arrow" aria-hidden="true"><use href="#external"/></svg></button>
+  </div>
+
+  <div class="feature-panel" id="feature-panel" role="tabpanel" aria-labelledby="tab-picture" tabindex="0" data-mode="picture">
+    <div class="feature-copy"><p class="eyebrow" id="feature-kicker">PICTURE / FIND YOUR FRAME</p><h3 id="feature-title">You call<br>the shots.</h3><p id="feature-description">Choose your camera, share your screen, or line up a video. Preview your scene before it reaches the room.</p><ul class="feature-points" id="feature-points"><li>Camera and microphone setup</li><li>Screen sharing and video rundown</li><li>Local preview before sharing</li></ul><a class="text-link" href="https://vc.friskydev.com/">Make it yours <svg class="icon" aria-hidden="true"><use href="#external"/></svg></a></div>
+    <div class="preview-shell">
+      <div class="preview-top"><span><span class="tiny-dot"></span> NEBU / SCENE EXPLORER</span><span>ILLUSTRATED PREVIEW</span></div>
+      <div class="preview-scene">
+        <div class="preview-grid"></div>
+        <div class="preview-art"><span class="preview-disc"></span><svg class="preview-star" aria-hidden="true"><use href="#star"/></svg><img src="assets/nebu-mark-yellow.svg" alt="" width="180" height="144"><span class="preview-caption" id="preview-caption">YOUR POINT<br>OF VIEW.</span></div>
+        <div class="preview-sound" aria-hidden="true"><div class="equalizer"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span>FIND YOUR<br>FREQUENCY.</span></div>
+        <div class="preview-people" aria-hidden="true"><span>N</span><span><svg><use href="#star"/></svg></span><span><svg><use href="#sound"/></svg></span><span>YOU</span></div>
+        <div class="preview-record" aria-hidden="true"><svg><use href="#record"/></svg><span>A MOMENT.<br>YOURS TO KEEP.</span></div>
+        <div class="preview-label" id="preview-label">01 — PICTURE</div>
+      </div>
+      <div class="preview-bottom"><span id="preview-bottom">Prepare → Preview → Share</span><svg class="icon" aria-hidden="true"><use href="#layers"/></svg></div>
+    </div>
+  </div>
+  <noscript><div class="no-script-features"><p><strong>Sound:</strong> Adjust microphone and video volume independently.</p><p><strong>Rooms:</strong> Create a room, copy an invite, and bring a small group together.</p><p><strong>Record:</strong> Capture your selected output and download the recording to your device.</p></div></noscript>
+</section>
+
+<section class="your-scene section" id="steps" aria-labelledby="steps-title"><div class="container">
+  <div class="section-heading"><div><p class="eyebrow">02 / YOUR KIND OF LIVE</p><h2 id="steps-title">Make room<br>for your thing.</h2></div><p>A conversation worth having.<br>A video worth sharing.<br>A moment worth keeping.</p></div>
+  <div class="use-cases">
+    <article class="use-case" data-reveal><div class="use-art conversation-art" aria-hidden="true"><span class="bubble bubble-one">hey, you.</span><span class="bubble bubble-two">let’s talk.</span><svg><use href="#star"/></svg></div><div class="use-copy"><span class="eyebrow">FOR THE CONVERSATIONS</span><h3>A room with<br>your people.</h3><p>Get a small group together. Share an invitation and give the conversation a place to happen.</p></div></article>
+    <article class="use-case" data-reveal><div class="use-art creative-art" aria-hidden="true"><div class="video-tile"><svg><use href="#camera"/></svg><span>YOUR TAKE</span></div><span class="creative-label">THAT’S THE ONE.</span></div><div class="use-copy"><span class="eyebrow">FOR THE THINGS YOU MAKE</span><h3>Give your ideas<br>some airtime.</h3><p>Walk through your work, line up a video, and show the room what you have in mind.</p></div></article>
+    <article class="use-case" data-reveal><div class="use-art recording-art" aria-hidden="true"><div class="record-circle"><svg><use href="#record"/></svg></div><span class="record-label">SAVE THIS FEELING</span><div class="tape-marks"></div></div><div class="use-copy"><span class="eyebrow">FOR THE GOOD MOMENTS</span><h3>Make it once.<br>Keep it close.</h3><p>Record the output you choose and save a copy on your device. Something to come back to.</p></div></article>
+  </div>
+</div></section>
+
+<section class="workflow-section section container" aria-labelledby="workflow-title">
+  <div class="section-heading"><div><p class="eyebrow">03 / FROM IDEA TO SCENE</p><h2 id="workflow-title">Get into<br>your element.</h2></div><a class="button button-outline" href="https://vc.friskydev.com/">Let’s make something <svg class="icon" aria-hidden="true"><use href="#external"/></svg></a></div>
+  <div class="workflow"><article data-reveal><span>01</span><h3>Prepare.</h3><p>Open the studio. Choose your camera, microphone and sources.</p></article><article data-reveal><span>02</span><h3>Preview.</h3><p>Find the frame. Balance the sound. Check what you’re about to share.</p></article><article data-reveal><span>03</span><h3>Share.</h3><p>Open your room, invite your people, or record a take for later.</p></article></div>
+  <figure class="product-shot" data-reveal><div class="shot-bar"><span>NEBU / IN THE STUDIO</span><span>PICTURE · SOUND · PEOPLE</span></div><img src="assets/studio-preview.webp" width="1440" height="1000" loading="lazy" decoding="async" alt="NEBU studio interface with camera preview, Studio, Music, Broadcast and Overlays shortcuts, and controls for recording and video rooms."><figcaption><span>NEBU interface preview.</span><a href="https://vc.friskydev.com/">Explore the app <svg class="icon" aria-hidden="true"><use href="#external"/></svg></a></figcaption></figure>
+</section>
+
+<section class="faq-section section container" id="faq" data-reveal aria-labelledby="faq-title"><div class="faq-heading"><p class="eyebrow">04 / GOOD TO KNOW</p><h2 id="faq-title">Before you<br>jump in.</h2><svg class="faq-star" aria-hidden="true"><use href="#star"/></svg></div><div class="faq-list">
+  <details><summary>What is NEBU?<span aria-hidden="true">+</span></summary><div><p>NEBU is a browser studio for camera, screen, prepared video, sound and rooms. It brings preparation, preview, sharing and local recording into one place.</p></div></details>
+  <details><summary>Do I need to install anything?<span aria-hidden="true">+</span></summary><div><p>The core studio runs in your browser. Use a current browser and allow camera or microphone access when you need it. Optional workflows such as OBS use their own software.</p></div></details>
+  <details><summary>Where does “Open studio” take me?<span aria-hidden="true">+</span></summary><div><p>The studio currently opens at <a href="https://vc.friskydev.com/">vc.friskydev.com</a>, with FriskyDev sign-in. This is NEBU’s app; nebu.quest is its home on the web.</p></div></details>
+  <details><summary>Can I check my scene before sharing?<span aria-hidden="true">+</span></summary><div><p>Yes. The studio provides a local preview. Starting a preview and sharing into a room are separate actions, so you can prepare your sources first.</p></div></details>
+  <details><summary>Can I invite people and record?<span aria-hidden="true">+</span></summary><div><p>You can open a room and share an invitation with a small group. You can also record your selected output and download it to your device. Recording format depends on your browser. Let everyone know before recording a shared session.</p></div></details>
+  <details><summary>Does music playback become broadcast audio?<span aria-hidden="true">+</span></summary><div><p>Microphone and loaded video audio have their own controls. Spotify playback stays on your selected Spotify device; controlling Spotify does not automatically add its audio to a broadcast. Connected services depend on your account and available configuration.</p></div></details>
+</div></section>
+
+<section class="closing" data-reveal aria-labelledby="closing-title"><div class="container closing-inner"><div><p class="eyebrow">YOU’VE GOT SOMETHING. LET IT OUT.</p><h2 id="closing-title">Your next scene<br>starts here.</h2><a class="button button-ink" href="https://vc.friskydev.com/">Open your studio <svg class="icon" aria-hidden="true"><use href="#external"/></svg></a></div><div class="closing-mark" aria-hidden="true"><i></i><i></i><i></i></div></div></section>
+
+<footer class="footer container"><div class="footer-brand"><a href="#" aria-label="NEBU home"><img src="assets/nebu-wordmark-paper.svg" width="148" height="34" alt="NEBU"></a><p>Set the scene.</p></div><div class="footer-links"><a href="https://vc.friskydev.com/">Open studio <svg class="icon" aria-hidden="true"><use href="#external"/></svg></a><a href="brand/NEBU-Brandbook.pdf">Brandbook <span class="file-type">PDF</span></a><a href="https://friskydev.com/">By FriskyDev <svg class="icon" aria-hidden="true"><use href="#external"/></svg></a></div><div class="footer-bottom"><span>© 2026 NEBU · by FriskyDev</span><span>nebu.quest</span></div></footer>
