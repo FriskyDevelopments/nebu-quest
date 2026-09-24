@@ -15,6 +15,7 @@
  * authoring time — the SPEC's preferred path), app.js makes zero network
  * calls and only wires behavior. If a mount is empty, its fragment is loaded
  * from sections.html (same-origin fetch) and placed in document order.
+ * A top-level node with class "onair-band" is inserted immediately after #faq.
  *
  * index.html should also carry a <noscript> fallback, e.g.:
  *   <noscript><p>NEBU is a browser studio. Enable JavaScript to browse the
@@ -250,7 +251,7 @@
       if (id === 'steps') {
         const frag = document.createDocumentFragment();
         let next = src.nextElementSibling;
-        while (next && next.id !== 'faq' && next.tagName !== 'FOOTER') {
+        while (next && next.id !== 'faq' && next.id !== 'onair' && !(next.classList && next.classList.contains('onair-band')) && next.tagName !== 'footer' && !(next.classList && next.classList.contains('closing'))) {
           const take = next;
           next = next.nextElementSibling;
           frag.append(take);
@@ -272,7 +273,7 @@
     };
 
     for (const node of [...nodes]) {
-      if (node.tagName === 'SVG' && node.classList.contains('svg-defs')) {
+      if (node.tagName === 'svg' && node.classList.contains('svg-defs')) {
         const existing = document.querySelector('svg.svg-defs');
         if (!existing) {
           document.body.prepend(node);
@@ -294,6 +295,18 @@
         anchor = fillSectionMount(node.id) || anchor;
         continue;
       }
+      if (node.getAttribute && node.getAttribute('data-mount') === 'before-live-room') {
+        const liveRoom = main
+          ? main.querySelector('[data-nebu-live-room]')
+          : document.querySelector('[data-nebu-live-room]');
+        if (liveRoom) {
+          liveRoom.parentNode.insertBefore(node, liveRoom);
+        } else if (main) {
+          main.append(node);
+        }
+        anchor = node;
+        continue;
+      }
       if (node.classList && (node.classList.contains('your-scene') || node.classList.contains('workflow-section'))) {
         const steps = document.getElementById('steps');
         if (steps && steps.parentNode) {
@@ -308,14 +321,31 @@
         }
         continue;
       }
-      if (node.tagName === 'FOOTER') {
+      if (node.classList && node.classList.contains('onair-band')) {
+        const faq = document.getElementById('faq');
+        if (faq && faq.parentNode) {
+          faq.after(node);
+        } else if (anchor && anchor.parentNode) {
+          anchor.after(node);
+          anchor = node;
+        } else if (main) {
+          main.append(node);
+          anchor = node;
+        }
+        continue;
+      }
+      if (node.tagName === 'footer') {
         const dst = document.querySelector('body > footer, footer');
-        if (dst && isEmptyMount(dst)) dst.replaceWith(node);
-        else if (main && !document.querySelector('footer.footer')) main.after(node);
+        if (dst && isEmptyMount(dst)) {
+          if (node.className) dst.className = node.className;
+          dst.replaceChildren(...node.childNodes);
+        } else if (main && !document.querySelector('footer.footer')) {
+          main.after(node);
+        }
         anchor = document.querySelector('footer') || anchor;
         continue;
       }
-      if (node.tagName === 'SECTION' || node.tagName === 'DIV') {
+      if (node.tagName === 'section' || node.tagName === 'div') {
         if (anchor && anchor.parentNode) {
           anchor.after(node);
           anchor = node;
@@ -360,10 +390,6 @@
       return;
     }
     loadSections()
-      .then((res) => {
-        if (!res.ok) throw new Error(`sections fetch ${res.status}`);
-        return res.text();
-      })
       .then(() => {
         wireAll(document);
       })
