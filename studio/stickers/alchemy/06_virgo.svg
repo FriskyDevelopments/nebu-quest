@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+    <style>
+        path, polygon, line, rect, circle {
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .sparkle-fast, .sparkle {
+            fill: #ffe55c !important;
+            stroke-width: 0 !important;
+        }
+    </style>
+    
+                <path d="M20 20 V80 M20 20 Q40 10 40 40 V80 M40 40 Q60 30 60 60 V80 M60 60 Q80 50 80 80 M70 65 Q90 60 85 90" stroke="#d4af37" fill="none"/>
+                <circle cx="50" cy="50" r="3" fill="#d4af37" class="sparkle-fast" style="animation-delay: 0.2s;" />
+            
+</svg>

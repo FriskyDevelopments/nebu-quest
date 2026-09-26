@@ -1,0 +1,75 @@
+# NEBU: the spec
+
+## English
+
+### What NEBU is
+NEBU is two things that work together:
+1. **A streaming studio in the browser.** Scenes, a mixer, rooms with guests, recording, lower thirds, overlays, transitions, stickers and a DJ mode. Nothing to install.
+2. **A group bot that starts on Telegram.** Live chat, reactions, song requests, polls and announcements for your people, inside a Telegram Mini App with a plain web fallback. Discord works if you bring your own bot.
+
+I built it for people who go live with their community: DJs, hosts, creators, and small groups who hang out on Telegram and want their show to feel like theirs.
+
+### Free tier
+Sign in with FRISKY ID and you get:
+- **The full studio.**
+- **One monthly design.** Each month I design one element or a small set (up to 5) for you. The job goes through my Hermes Stitch dispatcher and lands as a layered, editable pack in **My packs**, stored on Cloudflare R2. If a design fails, you get the month's slot back.
+
+### Core NEBU (not add-ons)
+- **Voice.** NEBU reads announcements out loud, ducks the music while it talks, and shows a matching lower third.
+- **DJ.** Two decks, a crossfader and BPM detection, using your own local files.
+- **Moderation.** Rate limits and slow mode in live chat, host-only controls, and short-lived signed links you can rotate or kill. Model-based filtering is on the roadmap.
+
+### Add-ons
+- **Vellum, your personal assistant.** A hosted assistant that runs in its own Cloudflare Container per FRISKY ID and sleeps when idle.
+- **FR!sky Paperclip seat link.** Paperclip is my own product, the Agent Ops desk at clip.friskydev.com. It is not the open-source project with a similar name. Link your Paperclip seat to your FRISKY ID and open the desk from NEBU.
+
+Both are designed and switched off in this release.
+
+### AI keys and credits
+Bring your own AI keys: they get sealed, shown masked, and you can delete them whenever you want. Or use credits. Plans can include some.
+
+### Plans
+- **Free:** studio plus the monthly design.
+- **ALL-IN: $99.99 USD / month.** The studio, Your NEBU (your own bot plus the second Telegram account it runs on), a linked FR!sky Paperclip seat, the hosted Vellum assistant, and included AI credits. Checkout is in test mode only for now.
+- Every other tier and add-on: price TBD.
+
+### Runtime
+All of it runs on Cloudflare: Pages for the site and studio, Workers and Durable Objects for rooms, live chat and signaling, D1 for data, R2 for packs, Workers AI for voice, Realtime TURN for connections, and Containers for the per-user assistant. The user's own bot and second account live in their own isolated Durable Object.
+
+---
+
+## Español
+
+### Qué es NEBU
+NEBU son dos cosas que trabajan juntas:
+1. **Un estudio de streaming en el navegador.** Escenas, mezclador, salas con invitados, grabación, lower thirds, overlays, transiciones, stickers y modo DJ. No hay que instalar nada.
+2. **Un bot de grupo que empieza en Telegram.** Chat en vivo, reacciones, peticiones de canciones, encuestas y anuncios para tu gente, dentro de una Mini App de Telegram, con versión web sencilla. Discord funciona si traes tu propio bot.
+
+Lo hice para quienes transmiten en vivo con su comunidad: DJs, hosts, creadores y grupos pequeños que se juntan en Telegram y quieren que su show se sienta suyo.
+
+### Plan gratis
+Entras con tu FRISKY ID y tienes:
+- **El estudio completo.**
+- **Un diseño al mes.** Cada mes te diseño un elemento o un set pequeño (hasta 5). El trabajo pasa por mi despachador Hermes Stitch y llega como un pack editable por capas a **Mis packs**, guardado en Cloudflare R2. Si un diseño falla, te regreso el lugar del mes.
+
+### Lo esencial de NEBU (no son extras)
+- **Voz.** NEBU lee los anuncios en voz alta, baja la música mientras habla y muestra un lower third a juego.
+- **DJ.** Dos decks, crossfader y detección de BPM, con tus propios archivos.
+- **Moderación.** Límites de mensajes y modo lento en el chat, controles solo para el host y enlaces firmados de corta duración que puedes cambiar o cortar. El filtrado con modelos viene después.
+
+### Extras
+- **Vellum, tu asistente personal.** Un asistente alojado que corre en su propio Cloudflare Container por cada FRISKY ID y se duerme cuando no lo usas.
+- **Enlace con FR!sky Paperclip.** Paperclip es mi propio producto, el escritorio Agent Ops en clip.friskydev.com. No es el proyecto de código abierto con nombre parecido. Vincula tu lugar de Paperclip a tu FRISKY ID y abre el escritorio desde NEBU.
+
+Los dos están diseñados y apagados en esta versión.
+
+### Llaves de IA y créditos
+Trae tus propias llaves de IA: se guardan selladas, se muestran enmascaradas y las borras cuando quieras. O usa créditos. Algunos planes los incluyen.
+
+### Planes
+- **Gratis:** estudio más el diseño mensual.
+- **ALL-IN: $99.99 USD al mes.** El estudio, Tu NEBU (tu propio bot más la segunda cuenta de Telegram donde corre), un lugar de FR!sky Paperclip vinculado, el asistente Vellum alojado y créditos de IA incluidos. Por ahora el pago está solo en modo de prueba.
+- Los demás planes y extras: precio por definir.
+
+### Dónde corre
+Todo corre en Cloudflare: Pages para el sitio y el estudio, Workers y Durable Objects para salas, chat en vivo y señalización, D1 para datos, R2 para packs, Workers AI para la voz, Realtime TURN para las conexiones y Containers para el asistente de cada persona. El bot propio y la segunda cuenta de cada quien viven en su propio Durable Object aislado.

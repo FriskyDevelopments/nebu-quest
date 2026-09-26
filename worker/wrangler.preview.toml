@@ -1,0 +1,90 @@
+# PREVIEW ONLY. Separate Worker, separate Durable Object namespaces, separate storage.
+# Never deploy this file as nebu-rooms (production).
+name = "nebu-rooms-preview"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+preview_urls = false
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "Room"
+
+[[durable_objects.bindings]]
+name = "TG_USERS"
+class_name = "TgUser"
+
+[[durable_objects.bindings]]
+name = "LIVE"
+class_name = "LiveHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["TgUser"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["LiveHub"]
+
+[[r2_buckets]]
+binding = "PACKS"
+bucket_name = "nebu-packs-preview"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nebu-packs-preview"
+database_id = "5791a078-e9de-431c-aa8c-a2d8eaf7c0c9"
+
+[[ratelimits]]
+name = "JOIN_LIMIT"
+namespace_id = "72001"
+simple = { limit = 30, period = 60 }
+
+[[ratelimits]]
+name = "TURN_LIMIT"
+namespace_id = "72002"
+simple = { limit = 12, period = 60 }
+
+[[ratelimits]]
+name = "AUTH_LIMIT"
+namespace_id = "72003"
+simple = { limit = 20, period = 60 }
+
+[[ratelimits]]
+name = "IMPORT_LIMIT"
+namespace_id = "72004"
+simple = { limit = 6, period = 60 }
+
+[[ratelimits]]
+name = "WRITE_LIMIT"
+namespace_id = "72005"
+simple = { limit = 60, period = 60 }
+
+[vars]
+ALLOWED_ORIGINS = "https://nebu.quest,https://www.nebu.quest,https://nebu-quest.pages.dev,*.nebu-quest.pages.dev,http://localhost:*,http://127.0.0.1:*"
+MAX_PEERS = "6"
+TURN_POLICY = "host-present"
+TURN_TTL = "1800"
+REQUIRE_HOST_LOGIN = "false"
+MAX_NEBU_PER_ID = "1"
+TELEGRAM_SUBMIT_MODE = "mock"
+TG_USER_MODE = "mock"
+ASSISTANT_TRIAL_ENABLED = "false"
+TTS_ENABLED = "true"
+TTS_ANON = "true"
+LIVE_ANON_HOSTS = "true"
+IMPORT_ANON = "true"
+TELEGRAM_ACTIONS_MODE = "mock"
+LIVE_WEB_BASE = "https://feat-studio-v2.nebu-quest.pages.dev/live/"
+# Set when Frisky provides them (see docs/SETUP-KEYS.md):
+# FD_HANDOFF_URL, SPOTIFY_CLIENT_ID, GOOGLE_CLIENT_ID, TELEGRAM_BOT_USERNAME, TELEGRAM_LOGIN_DOMAIN_OK, RELAY_URL,
+# PRICE_EXTRA_REQUEST, PRICE_SET_PLUS, PRICE_DESIGN_SYSTEM, WHOP_PLAN_EXTRA_REQUEST, WHOP_PLAN_SET_PLUS, WHOP_PLAN_DESIGN_SYSTEM
+# Secrets (wrangler secret put): TURN_KEY_ID, TURN_KEY_API_TOKEN, FD_HANDOFF_SECRET, NEBU_SESSION_SECRET, TENANT_KEY,
+# TELEGRAM_BOT_TOKEN, ADMIN_TOKEN, WHOP_API_KEY, WHOP_WEBHOOK_SECRET, TG_API_ID, TG_API_HASH
+
+[ai]
+binding = "AI"

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>NEBU · Live chat</title>
+  <meta name="description" content="Chat, react, request songs and vote while the show is live.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0B001A">
+  <meta name="nebu-signal" content="https://nebu-rooms.hrgrrtks2p.workers.dev">
+  <meta name="nebu-signal-preview" content="https://nebu-rooms-preview.hrgrrtks2p.workers.dev">
+  <link rel="icon" href="/assets/nebu-icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Manrope:wght@500..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/viewer/live.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="lv" id="app">
+    <header class="lv-top">
+      <img src="/assets/nebu-mark-yellow.svg" width="34" height="27" alt="NEBU">
+      <div class="lv-title"><b>Live chat</b><span id="lv-sub">Connecting…</span></div>
+      <span class="lv-pill" id="lv-pill"><i></i>LIVE</span>
+      <span class="lv-count" id="lv-count" hidden>👁 0</span>
+    </header>
+    <div class="lv-pin" id="lv-pin" hidden></div>
+    <div class="lv-announce" id="lv-announce" hidden></div>
+    <main class="lv-main">
+      <section class="lv-cards" id="lv-cards"></section>
+      <ol class="lv-msgs" id="lv-msgs" aria-live="polite"></ol>
+    </main>
+    <div class="lv-float" id="lv-float" aria-hidden="true"></div>
+    <footer class="lv-bottom">
+      <div class="lv-react" id="lv-react"></div>
+      <form class="lv-form" id="lv-form">
+        <button class="lv-mode" type="button" id="lv-mode" aria-label="Switch between chat and song request">💬</button>
+        <input id="lv-in" maxlength="300" placeholder="Say something" autocomplete="off" aria-label="Message">
+        <button class="lv-send" type="submit" aria-label="Send">➤</button>
+      </form>
+    </footer>
+    <div class="lv-gate" id="lv-gate" hidden>
+      <div class="lv-gate-card">
+        <img src="/assets/nebu-mark-yellow.svg" width="64" height="51" alt="">
+        <h1>Join the<br><span>live chat.</span></h1>
+        <p>Pick a name. No account, no email.</p>
+        <form id="lv-join"><input id="lv-name" maxlength="24" placeholder="Your name" autocomplete="nickname" required minlength="2"><button type="submit">Join</button></form>
+        <p class="lv-err" id="lv-err" role="alert"></p>
+      </div>
+    </div>
+    <div class="lv-ended" id="lv-ended" hidden><div><h2>That's a wrap.</h2><p>This live chat has ended. Thanks for hanging out.</p></div></div>
+  </div>
+  <script src="/viewer/live.js" defer></script>
+</body>
+</html>
