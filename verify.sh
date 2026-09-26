@@ -7,7 +7,12 @@ set -u
 
 PORT="${PORT:-8811}"
 BASE="http://localhost:${PORT}"
-CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+CHROME="${CHROME:-}"
+if [ -z "$CHROME" ]; then
+  for c in "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" /usr/bin/google-chrome /usr/bin/chromium /usr/bin/chromium-browser; do
+    if [ -x "$c" ]; then CHROME="$c"; break; fi
+  done
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DESKTOP_SHOT="${SCREENSHOT_DESKTOP:-${SCRIPT_DIR}/verify-desktop.png}"
@@ -83,7 +88,7 @@ check_200() {
 }
 
 check_200 "/" "$BASE/"
-for asset in styles.css app.js scene.js sections.html room.js; do
+for asset in styles.css app.js scene.js sections.html room.js studio/ studio/studio.js studio/studio.css; do
   check_200 "/$asset" "$BASE/$asset"
 done
 
@@ -103,6 +108,12 @@ if printf '%s' "$INDEX" | grep -q 'property="og:'; then
   report PASS 'index.html contains og: tags'
 else
   report FAIL 'index.html contains og: tags'
+fi
+
+if curl -s "$BASE/" "$BASE/sections.html" | grep -q 'vc.friskydev.com'; then
+  report FAIL 'no CTAs point at the gated vc.friskydev.com app'
+else
+  report PASS 'no CTAs point at the gated vc.friskydev.com app'
 fi
 
 # Screenshots: desktop 1440x900, mobile 390x844.

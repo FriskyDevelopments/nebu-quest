@@ -1,5 +1,10 @@
 # NEBU.QUEST MVP -- Architectural Spec
 
+> Update 2026-09-26: the site now ships its own studio at `/studio/` and a rooms
+> signaling Worker (`worker/`). Studio CTAs, the room widget and the OBS card no
+> longer point at `vc.friskydev.com`. See README.md for the current architecture;
+> the sections below describe the original landing-only MVP.
+
 Goal: an Awwwards-caliber marketing + live-proof landing experience for NEBU.QUEST.
 Static bundle, no build step, no framework, no new dependencies. Marketing sections
 sell the product; one honest live-proof widget demonstrates the real API state.
