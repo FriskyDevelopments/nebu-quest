@@ -1,6 +1,7 @@
 // Monthly design via Frisky's Hermes Stitch dispatcher (docs/stitch-hermes.md).
 // NEBU -> POST {HERMES_STITCH_URL}/stitch/jobs  (X-Nebu-Signature: hex HMAC-SHA256(raw body, HERMES_STITCH_SECRET)) -> 202 {job_id}
-// Hermes -> POST /api/stitch/callback {job_id, status:'designing'|'ready'|'failed', screens:[{htmlCode, screenshotUrl}], error?}
+//   body also carries brief_mode:'auto'|'provided', rounds:3, nice_touch:true (pipeline rules, see docs)
+// Hermes -> POST /api/stitch/callback {job_id, status:'designing'|'ready'|'failed', round?:1..3, screens:[{htmlCode, screenshotUrl}], nice_touch?:string, error?}
 // Quota: 1 job per calendar month (UTC) per FRISKY ID, reserved at dispatch, refunded on 'failed'.
 // No HERMES_STITCH_URL -> mock dispatcher that drives the same callback handler with sample screens.
 import { randomId } from "./auth.js";
@@ -12,6 +13,14 @@ export const STITCH_SCHEMA = [
   // One row per (owner, month) = the reserved monthly slot. Deleted on 'failed' (refund).
   `CREATE TABLE IF NOT EXISTS stitch_quota (owner TEXT NOT NULL, month TEXT NOT NULL, job_id TEXT NOT NULL, PRIMARY KEY (owner, month))`,
 ];
+// Added after the first preview deploy; each runs once and is ignored if the column exists.
+export const STITCH_MIGRATIONS = [
+  `ALTER TABLE stitch_jobs ADD COLUMN round INTEGER DEFAULT 0`,
+  `ALTER TABLE stitch_jobs ADD COLUMN rounds INTEGER DEFAULT 3`,
+  `ALTER TABLE stitch_jobs ADD COLUMN brief_mode TEXT DEFAULT 'auto'`,
+  `ALTER TABLE stitch_jobs ADD COLUMN nice_touch TEXT`,
+];
+export const ROUNDS = 3;
 const TERMINAL = new Set(["ready", "failed"]);
 const MAX_SHOT = 6 * 1024 * 1024, MAX_HTML = 512 * 1024;
 const month = (d = new Date()) => d.toISOString().slice(0, 7);
@@ -39,7 +48,7 @@ export async function verifySig(secret, raw, sig) {
 }
 
 export async function listStitch(env, user) {
-  const rows = await env.DB.prepare(`SELECT job_id, month, kind, count, prompt, status, mode, pack, screens, error, created, updated FROM stitch_jobs WHERE owner = ?1 ORDER BY created DESC LIMIT 12`).bind(user.id).all();
+  const rows = await env.DB.prepare(`SELECT job_id, month, kind, count, prompt, status, mode, pack, screens, error, round, rounds, brief_mode, nice_touch, created, updated FROM stitch_jobs WHERE owner = ?1 ORDER BY created DESC LIMIT 12`).bind(user.id).all();
   const slot = await env.DB.prepare(`SELECT job_id FROM stitch_quota WHERE owner = ?1 AND month = ?2`).bind(user.id, month()).first();
   return { month: month(), available: !slot, mode: stitchConfig(env).mode, jobs: rows.results };
 }
@@ -48,14 +57,16 @@ export async function listStitch(env, user) {
 export async function dispatchStitch(env, ctx, user, body, origin) {
   const prompt = String(body.prompt || "").replace(/[\u0000-\u0008\u000b-\u001f]/g, " ").trim().slice(0, 1500);
   const kind = body.kind === "set" ? "set" : "element";
+  // Vague idea -> Hermes has a reasoning model write the brief first; a user-written brief goes straight to Stitch.
+  const brief_mode = body.brief_mode === "provided" ? "provided" : "auto";
   const count = kind === "element" ? 1 : Math.max(2, Math.min(5, Number(body.count) || 3));
   if (prompt.length < 10) return { status: 400, body: { error: "prompt_too_short", friendly: "Tell me a bit more: at least a sentence." } };
   const m = month(), job_id = "sj_" + randomId(12), now = Date.now(), cfg = stitchConfig(env);
   // Reserve the monthly slot atomically (PK on owner+month).
   const res = await env.DB.prepare(`INSERT OR IGNORE INTO stitch_quota (owner, month, job_id) VALUES (?1, ?2, ?3)`).bind(user.id, m, job_id).run();
   if (!res.meta || !res.meta.changes) return { status: 409, body: { error: "monthly_used", friendly: "You've used this month's design. It resets on the 1st." } };
-  await env.DB.prepare(`INSERT INTO stitch_jobs (job_id, owner, month, kind, count, prompt, status, mode, created, updated) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'queued', ?7, ?8, ?8)`).bind(job_id, user.id, m, kind, count, prompt, cfg.mode, now).run();
-  const payload = JSON.stringify({ job_id, frisky_id: user.id, prompt, kind, count, callback_url: `${origin}/api/stitch/callback` });
+  await env.DB.prepare(`INSERT INTO stitch_jobs (job_id, owner, month, kind, count, prompt, status, mode, created, updated, round, rounds, brief_mode) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'queued', ?7, ?8, ?8, 0, ?9, ?10)`).bind(job_id, user.id, m, kind, count, prompt, cfg.mode, now, ROUNDS, brief_mode).run();
+  const payload = JSON.stringify({ job_id, frisky_id: user.id, prompt, kind, count, callback_url: `${origin}/api/stitch/callback`, brief_mode, rounds: ROUNDS, nice_touch: true });
   if (cfg.mode === "hermes") {
     let ok = false, err = "dispatch_failed";
     try {
@@ -90,7 +101,9 @@ export async function applyCallback(env, m) {
   if (!job) return { status: 404, body: { error: "unknown_job" } };
   if (TERMINAL.has(job.status)) return { status: 200, body: { ok: true, already: job.status } }; // idempotent
   if (m.status === "designing") {
-    await env.DB.prepare(`UPDATE stitch_jobs SET status = 'designing', updated = ?2 WHERE job_id = ?1 AND status IN ('queued','designing')`).bind(job.job_id, Date.now()).run();
+    const round = Math.max(1, Math.min(job.rounds || ROUNDS, Number(m.round) || 1));
+    // Rounds only move forward (a late round-1 callback can't undo round 2).
+    await env.DB.prepare(`UPDATE stitch_jobs SET status = 'designing', round = MAX(COALESCE(round, 0), ?3), updated = ?2 WHERE job_id = ?1 AND status IN ('queued','designing')`).bind(job.job_id, Date.now(), round).run();
     return { status: 200, body: { ok: true } };
   }
   if (m.status === "failed") { await finishFailed(env, job.job_id, m.error || "failed"); return { status: 200, body: { ok: true, refunded: true } }; }
@@ -112,8 +125,9 @@ export async function applyCallback(env, m) {
       items.push({ id: `stitch-${i + 1}`, type: "design", src: `r2:${base}.${ext}`, source: html ? `r2:${base}.html` : null, editable: Boolean(html), visible: true, locked: false, opacity: 1, blend: "normal" });
     }
     const name = `Monthly design · ${job.month}`;
-    const pack = await createPackFor(env, job.owner, name, "mixed", { version: 1, kind: "stitch", job: job.job_id, prompt: job.prompt, layers: items }, `stitch:${job.job_id}`);
-    await env.DB.prepare(`UPDATE stitch_jobs SET status = 'ready', pack = ?2, screens = ?3, updated = ?4 WHERE job_id = ?1`).bind(job.job_id, pack, items.length, Date.now()).run();
+    const niceTouch = typeof m.nice_touch === "string" ? m.nice_touch.replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 160) || null : null;
+    const pack = await createPackFor(env, job.owner, name, "mixed", { version: 1, kind: "stitch", job: job.job_id, prompt: job.prompt, rounds: job.rounds || ROUNDS, niceTouch, layers: items }, `stitch:${job.job_id}`);
+    await env.DB.prepare(`UPDATE stitch_jobs SET status = 'ready', pack = ?2, screens = ?3, round = ?5, nice_touch = ?6, updated = ?4 WHERE job_id = ?1`).bind(job.job_id, pack, items.length, Date.now(), job.rounds || ROUNDS, niceTouch).run();
     return { status: 200, body: { ok: true, pack } };
   } catch (e) {
     await env.DB.prepare(`UPDATE stitch_jobs SET status = 'designing', updated = ?2 WHERE job_id = ?1 AND status = 'saving'`).bind(job.job_id, Date.now()).run();
@@ -133,16 +147,18 @@ async function grab(url) {
 }
 
 // ---- Mock dispatcher: same contract, signed callbacks, sample screens ----
+const MOCK_TOUCHES = ["A soft yellow glint sweeps across the edge on entry", "The NEBU star hides in the corner and twinkles once", "Matching dark and light variants, same layers", "A subtle grain so it sits nicely on camera"];
 const SAMPLES = ["lower-third", "sticker", "frame", "overlay", "badge"];
 async function mockHermes(env, job) {
   const base = String(env.STITCH_SAMPLE_BASE || "https://feat-studio-v2.nebu-quest.pages.dev/studio/stitch-samples/").replace(/\/?$/, "/");
   const send = async (msg) => { const raw = JSON.stringify(msg); const req = new Request("https://mock/api/stitch/callback", { method: "POST", body: raw, headers: { "X-Nebu-Signature": await signBody(secretOf(env), raw) } }); return stitchCallback(env, req); };
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-  await wait(1500); await send({ job_id: job.job_id, status: "designing", screens: [] });
-  await wait(4500);
+  // Mirrors the real pipeline: (brief if auto) -> Stitch round 1 -> vision review -> round 2 -> review -> round 3.
+  for (let r = 1; r <= (job.rounds || ROUNDS); r++) { await wait(r === 1 ? 1500 : 2200); await send({ job_id: job.job_id, status: "designing", round: r, screens: [] }); }
+  await wait(2200);
   if (/\bfail\b/i.test(job.prompt)) return send({ job_id: job.job_id, status: "failed", screens: [], error: "mock_failure_requested" });
   const screens = Array.from({ length: job.count }, (_, i) => { const s = SAMPLES[i % SAMPLES.length]; return { screenshotUrl: `${base}${s}.svg`, htmlCode: sampleHtml(s, job.prompt) }; });
-  await send({ job_id: job.job_id, status: "ready", screens });
+  await send({ job_id: job.job_id, status: "ready", round: job.rounds || ROUNDS, screens, nice_touch: MOCK_TOUCHES[job.job_id.charCodeAt(3) % MOCK_TOUCHES.length] });
 }
 function sampleHtml(kind, prompt) {
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

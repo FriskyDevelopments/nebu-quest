@@ -112,10 +112,13 @@ if (process.env.SESSION) {
   await sp.goto(`${BASE}/studio/`, { waitUntil: 'networkidle' }); await sp.click('#gate-go'); await sp.waitForTimeout(2500);
   await sp.locator('[data-acc="packs"] summary').scrollIntoViewIfNeeded(); await sp.click('[data-acc="packs"] summary'); await sp.waitForTimeout(2000);
   await sp.fill('#sj-prompt', 'A neon lower third and a matching sticker for my late sets'); await sp.selectOption('#sj-kind', 'set');
-  await sp.click('#sj-form button[type=submit]'); await sp.waitForTimeout(2200);
+  await sp.click('#sj-form button[type=submit]');
+  const roundSeen = await sp.waitForSelector('.sj-pill:text-matches("round [23]/3")', { timeout: 20000 }).then((e) => e.textContent()).catch(() => '');
+  ok('designing shows round x/3', /round [23]\/3/.test(roundSeen), `(${roundSeen})`);
   await sp.locator('[data-acc="packs"]').screenshot({ path: `${SHOTS}/v2-stitch-designing.png` });
   await sp.waitForSelector('.sj-job.is-ready', { timeout: 30000 }).catch(() => {});
   ok('monthly design reaches Ready', await sp.locator('.sj-job.is-ready').count() > 0);
+  ok('ready shows nice touch', await sp.locator('.sj-job.is-ready .sj-touch').first().isVisible().catch(() => false));
   await sp.locator('.sj-job.is-ready [data-load]').first().click().catch(() => {}); await sp.waitForTimeout(2000);
   await sp.locator('[data-acc="packs"]').screenshot({ path: `${SHOTS}/v2-stitch-ready.png` });
   await sp.locator('#program').screenshot({ path: `${SHOTS}/v2-stitch-on-program.png` });

@@ -175,3 +175,6 @@ body.nb-docked .st-main { margin-right: 380px; transition: margin .35s var(--eas
 .nb-msg:hover .nb-pinbtn, .nb-pinbtn:focus-visible { opacity: 1; }
 @media (hover: none) { .nb-pinbtn { opacity: .7; } }
 @media (prefers-reduced-motion: reduce) { .nb-pin { animation: none !important; } }
+.sj-job { flex-wrap: wrap; }
+.sj-touch { flex-basis: 100%; margin-left: 2px; font-size: 12px; color: #e9e3f5; padding: 6px 10px; border-radius: 10px; background: rgba(255,212,0,.08); border: 1px dashed rgba(255,212,0,.35); animation: sj-in .45s .1s cubic-bezier(.2,.8,.2,1) both; }
+.sj-touch b { color: #ffd400; font-size: 10.5px; letter-spacing: .06em; margin-right: 4px; }

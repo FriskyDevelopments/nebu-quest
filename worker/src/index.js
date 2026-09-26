@@ -30,7 +30,7 @@ export { LiveHub } from "./live.js";
 import { LIVE_SCHEMA, handleLive, liveConfig } from "./live.js";
 import { ttsConfig, speak } from "./tts.js";
 import { ACTIONS_SCHEMA, postJoinMessage, actionLog } from "./actions.js";
-import { STITCH_SCHEMA, stitchConfig, listStitch, dispatchStitch, stitchCallback } from "./stitch.js";
+import { STITCH_SCHEMA, STITCH_MIGRATIONS, stitchConfig, listStitch, dispatchStitch, stitchCallback } from "./stitch.js";
 import { TENANT_SCHEMA, yourNebu, createTenant, setTenantBot, checkTenantBot, deleteTenant, setLink, removeLink } from "./tenant.js";
 
 const ROOM_RE = /^[a-z0-9][a-z0-9-]{3,39}$/;
@@ -88,6 +88,7 @@ let schemaOk = false;
 async function schema(env) {
   if (schemaOk || !env.DB) return;
   await env.DB.batch([...SCHEMA, ...BILLING_SCHEMA, ...TENANT_SCHEMA, ...PLAN_SCHEMA, ...AI_SCHEMA, ...LIVE_SCHEMA, ...ACTIONS_SCHEMA, ...STITCH_SCHEMA].map((s) => env.DB.prepare(s)));
+  for (const m of STITCH_MIGRATIONS) { try { await env.DB.prepare(m).run(); } catch { /* column already there */ } }
   schemaOk = true;
 }
 
