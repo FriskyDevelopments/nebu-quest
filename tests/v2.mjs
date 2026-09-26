@@ -114,7 +114,7 @@ if (process.env.SESSION) {
   await sp.fill('#sj-prompt', 'A neon lower third and a matching sticker for my late sets'); await sp.selectOption('#sj-kind', 'set');
   await sp.click('#sj-form button[type=submit]');
   const roundSeen = await sp.waitForSelector('.sj-pill:text-matches("round [23]/3")', { timeout: 20000 }).then((e) => e.textContent()).catch(() => '');
-  ok('designing shows round x/3', /round [23]\/3/.test(roundSeen), `(${roundSeen})`);
+  ok('designing shows NEBU round x/3', /NEBU is designing · round [23]\/3/.test(roundSeen), `(${roundSeen})`);
   await sp.locator('[data-acc="packs"]').screenshot({ path: `${SHOTS}/v2-stitch-designing.png` });
   await sp.waitForSelector('.sj-job.is-ready', { timeout: 30000 }).catch(() => {});
   ok('monthly design reaches Ready', await sp.locator('.sj-job.is-ready').count() > 0);
