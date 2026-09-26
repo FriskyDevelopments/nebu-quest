@@ -115,11 +115,19 @@ if (process.env.SESSION) {
   await sp.click('#sj-form button[type=submit]');
   const roundSeen = await sp.waitForSelector('.sj-pill:text-matches("round [23]/3")', { timeout: 20000 }).then((e) => e.textContent()).catch(() => '');
   ok('designing shows NEBU round x/3', /NEBU is designing · round [23]\/3/.test(roundSeen), `(${roundSeen})`);
+  await sp.locator('[data-acc="packs"]').evaluate((e) => e.scrollIntoView({ block: 'center' }));
   await sp.locator('[data-acc="packs"]').screenshot({ path: `${SHOTS}/v2-stitch-designing.png` });
+  ok('round indicator shows progress', await sp.locator('.sj-rounds i.is-done').count() >= 1);
   await sp.waitForSelector('.sj-job.is-ready', { timeout: 30000 }).catch(() => {});
   ok('monthly design reaches Ready', await sp.locator('.sj-job.is-ready').count() > 0);
   ok('ready shows nice touch', await sp.locator('.sj-job.is-ready .sj-touch').first().isVisible().catch(() => false));
   await sp.locator('.sj-job.is-ready [data-load]').first().click().catch(() => {}); await sp.waitForTimeout(2000);
+  // Worst case: scroll everything to the very bottom, then the last pack action must not sit under the chat button.
+  await sp.evaluate(() => { document.querySelectorAll('*').forEach((n) => { if (n.scrollHeight > n.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(n).overflowY)) n.scrollTop = n.scrollHeight; }); window.scrollTo(0, document.documentElement.scrollHeight); });
+  await sp.waitForTimeout(300);
+  const overlap = await sp.evaluate(() => { const a = [...document.querySelectorAll('#packs-b [data-load]')].pop(); const b = document.getElementById('nb-btn'); if (!a || !b) return 'missing'; const r = a.getBoundingClientRect(), q = b.getBoundingClientRect(); return !(r.right < q.left || r.left > q.right || r.bottom < q.top || r.top > q.bottom); });
+  ok('pack actions clear of chat button', overlap === false, `(${overlap})`);
+  await sp.locator('[data-acc="packs"]').evaluate((e) => e.scrollIntoView({ block: 'center' })); await sp.waitForTimeout(300);
   await sp.locator('[data-acc="packs"]').screenshot({ path: `${SHOTS}/v2-stitch-ready.png` });
   await sp.locator('#program').screenshot({ path: `${SHOTS}/v2-stitch-on-program.png` });
   await sc.close();

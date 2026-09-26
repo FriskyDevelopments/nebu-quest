@@ -147,7 +147,7 @@ async function grab(url) {
 }
 
 // ---- Mock dispatcher: same contract, signed callbacks, sample screens ----
-const MOCK_TOUCHES = ["A soft yellow glint sweeps across the edge on entry", "The NEBU star hides in the corner and twinkles once", "Matching dark and light variants, same layers", "A subtle grain so it sits nicely on camera"];
+const MOCK_TOUCHES = ["A soft yellow glint sweeps across the edge on entry", "The NEBU star hides in the corner and twinkles once", "An animated glow-in version for your intro, same layers", "A subtle grain so it sits nicely on camera"];
 const SAMPLES = ["lower-third", "sticker", "frame", "overlay", "badge"];
 async function mockHermes(env, job) {
   const base = String(env.STITCH_SAMPLE_BASE || "https://feat-studio-v2.nebu-quest.pages.dev/studio/stitch-samples/").replace(/\/?$/, "/");
