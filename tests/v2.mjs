@@ -74,7 +74,15 @@ await v.locator('#lv-react button').first().click(); await v.waitForTimeout(400)
 await v.locator('#lv-react button').nth(1).click(); await v.waitForTimeout(300);
 await v.click('#lv-mode').catch(() => {}); await v.fill('#lv-in', 'Daft Punk - One More Time'); await v.press('#lv-in', 'Enter'); await v.waitForTimeout(900);
 const vote = v.locator('#lv-cards button').first(); if (await vote.count()) await vote.click();
-await v.waitForTimeout(900); await v.screenshot({ path: `${SHOTS}/v2-viewer-live-phone.png` });
+await v.waitForTimeout(900);
+ok('viewer: no empty notice bars', !(await v.locator('#lv-pin').isVisible()) && !(await v.locator('#lv-announce').isVisible()));
+await v.screenshot({ path: `${SHOTS}/v2-viewer-live-nopin-phone.png` });
+await p.click('.nb-tabs [data-nt="chat"]'); await p.waitForTimeout(300);
+await p.locator('#nb-msgs [data-pin="this set is fire"]').first().click({ force: true }); await v.waitForTimeout(1200);
+const pinTxt = (await v.locator('#lv-pin').isVisible()) ? await v.textContent('#lv-pin') : '';
+ok('host pin reaches viewer', pinTxt.includes('this set is fire'), `(${pinTxt.trim().slice(0, 50)})`);
+await v.screenshot({ path: `${SHOTS}/v2-viewer-live-phone.png` });
+await p.locator('#nb-panel').screenshot({ path: `${SHOTS}/v2-chat-host-pinned-desktop.png` }).catch(() => {});
 await p.waitForTimeout(800);
 await p.click('.nb-tabs [data-nt="chat"]'); await p.waitForTimeout(300);
 const hostSaw = await p.textContent('#nb-msgs'); ok('host sees viewer chat', hostSaw.includes('this set is fire'));

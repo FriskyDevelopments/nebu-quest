@@ -1,5 +1,6 @@
 :root { --night: #0B001A; --night-2: #150A26; --paper: #F7F5F2; --violet: #9D00FF; --cyan: #00E5FF; --lime: #B7FF2A; --yellow: #FFD100; --pink: #FF2E88; --ink: #121212; --muted: #B9B0CC; --dim: #7E7492; --line: rgba(255,255,255,.1); --ease: cubic-bezier(.2,.8,.2,1); --display: "Bricolage Grotesque", Manrope, system-ui, sans-serif; --body: Manrope, system-ui, sans-serif; }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; }
 body { background: radial-gradient(900px 500px at 50% -10%, rgba(157,0,255,.28), transparent 60%), radial-gradient(700px 500px at 120% 110%, rgba(0,229,255,.1), transparent 60%), var(--night); color: var(--paper); font: 500 15px/1.4 var(--body); overflow: hidden; }
 .lv { height: 100dvh; display: grid; grid-template-rows: auto auto auto 1fr auto; max-width: 640px; margin: 0 auto; position: relative; }
@@ -10,7 +11,17 @@ body { background: radial-gradient(900px 500px at 50% -10%, rgba(157,0,255,.28),
 @keyframes blink { 50% { opacity: .3; } }
 .lv-count { font: 700 12px var(--body); padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.08); }
 .lv-pin, .lv-announce { margin: 0 12px 8px; padding: 10px 12px; border-radius: 14px; display: flex; gap: 8px; align-items: center; font-size: 14px; }
-.lv-pin { background: linear-gradient(90deg, rgba(255,209,0,.2), rgba(255,209,0,.05)); border: 1px solid rgba(255,209,0,.35); }
+.lv-pin { position: relative; overflow: hidden; align-items: flex-start; gap: 10px; padding: 10px 12px 11px; background: rgba(21,10,38,.82); border: 1px solid rgba(255,209,0,.28); box-shadow: 0 10px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transform-origin: top center; }
+.lv-pin::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(var(--yellow), var(--pink)); }
+.lv-pin-ico { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(255,209,0,.16); font-style: normal; font-size: 14px; }
+.lv-pin-body { display: grid; gap: 1px; min-width: 0; }
+.lv-pin-body em { font: 800 10.5px var(--body); font-style: normal; letter-spacing: .08em; text-transform: uppercase; color: var(--yellow); }
+.lv-pin-body span { font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.lv-pin.is-in { animation: pinIn .46s var(--ease) both; } .lv-pin.is-in .lv-pin-ico { animation: pinDrop .6s .12s cubic-bezier(.3,1.6,.5,1) both; }
+.lv-pin.is-out, .lv-announce.is-out { animation: pinOut .26s ease-in both; }
+@keyframes pinIn { from { opacity: 0; transform: translateY(-12px) scaleY(.85); filter: blur(4px); } }
+@keyframes pinDrop { from { transform: translateY(-14px) rotate(-35deg); opacity: 0; } }
+@keyframes pinOut { to { opacity: 0; transform: translateY(-8px) scaleY(.9); } }
 .lv-announce { background: linear-gradient(135deg, rgba(255,209,0,.25), rgba(157,0,255,.3)); border: 1px solid rgba(255,209,0,.45); }
 .lv-announce.is-in { animation: annIn .5s var(--ease); } @keyframes annIn { from { opacity: 0; transform: translateY(-10px) scale(.96); } }
 .b-nebu, .b-host { font-style: normal; font: 800 10px var(--body); letter-spacing: .08em; padding: 2px 7px; border-radius: 6px; background: var(--yellow); color: var(--ink); } .b-host { background: var(--cyan); }
@@ -57,3 +68,5 @@ body { background: radial-gradient(900px 500px at 50% -10%, rgba(157,0,255,.28),
 .lv-err { color: var(--pink); min-height: 1.2em; }
 .lv-ended h2 { font: 800 36px var(--display); margin: 0 0 6px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+@media (prefers-reduced-motion: reduce) { .lv-pin, .lv-pin *, .lv-announce { animation: none !important; } }

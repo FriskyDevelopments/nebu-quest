@@ -339,11 +339,12 @@
   const tick = [];
   function addMsg(m) {
     const li = document.createElement('li'); li.className = `nb-msg${m.nebu ? ' is-nebu' : ''}${m.mine ? ' is-mine' : ''}`;
-    li.innerHTML = `<span class="nb-who">${m.nebu ? '<i class="nb-host">NEBU</i>' : ''}${m.host && !m.nebu ? '<i class="nb-hostb">HOST</i>' : ''}${esc(m.name)}<em class="mono">${esc(m.src)}</em></span><span class="nb-text">${esc(m.text)}</span>`;
+    li.innerHTML = `<span class="nb-who">${m.nebu ? '<i class="nb-host">NEBU</i>' : ''}${m.host && !m.nebu ? '<i class="nb-hostb">HOST</i>' : ''}${esc(m.name)}<em class="mono">${esc(m.src)}</em></span><span class="nb-text">${esc(m.text)}</span>${m.nebu ? '' : `<button class="nb-pinbtn" type="button" data-pin="${esc(m.text)}" title="Pin for viewers" aria-label="Pin for viewers">📌</button>`}`;
     const ol = $('#nb-msgs'); ol.appendChild(li); while (ol.children.length > 150) ol.firstChild.remove(); ol.scrollTop = ol.scrollHeight;
     tick.push(`${m.name}: ${m.text}`); if (tick.length > 5) tick.shift(); G.tickerText = tick.join('   ✦   ');
     if (!m.mine) pulse();
   }
+  $('#nb-msgs').addEventListener('click', (e) => { const b = e.target.closest('[data-pin]'); if (!b) return; if (hubSend({ type: 'pin', text: b.dataset.pin })) toast('Pinned for viewers.'); else toast('Open the live chat first to pin.'); });
   addEventListener('nebu:chat', (e) => { const d = e.detail; const mine = d.from && d.from === NebuStudio.myId(); if (mine && hub && hub.readyState === 1) return; addMsg({ name: mine ? 'You' : (d.name || 'Guest'), text: d.text, src: 'room', mine, host: mine }); });
   $('#nb-form').addEventListener('submit', (e) => {
     e.preventDefault(); const text = $('#nb-in').value.trim(); if (!text) return; $('#nb-in').value = '';
@@ -386,7 +387,14 @@
     if (m.type === 'presence') G.viewers = Math.max(0, m.viewers - 1);
     if (m.type === 'ended') { liveInfo = null; store.set('nebu:live', null); renderLive(); }
   }
-  function setPin(p) { const el = $('#nb-pin'); el.hidden = !p; if (p) el.innerHTML = `<span class="mono">PINNED</span> ${esc(p.text)}`; }
+  function setPin(p) {
+    const el = $('#nb-pin'); const text = p && String(p.text || '').trim();
+    if (!text) { el.hidden = true; el.innerHTML = ''; delete el.dataset.text; return; }
+    if (el.dataset.text === text && !el.hidden) return;
+    el.dataset.text = text; el.innerHTML = `<span class="mono">📌 PINNED</span><span class="nb-pin-t">${esc(text)}</span><button class="nb-ico nb-unpin" type="button" title="Unpin" aria-label="Unpin">✕</button>`;
+    el.hidden = false; el.classList.remove('is-in'); void el.offsetWidth; el.classList.add('is-in');
+    el.querySelector('.nb-unpin').onclick = () => hubSend({ type: 'pin', text: '' });
+  }
   function renderLive() {
     const box = $('#nb-livebox'), L = CFG.live || {};
     if (!L.enabled) { box.innerHTML = '<p class="quiet">Live viewer chat isn\'t switched on here yet.</p>'; return; }

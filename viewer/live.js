@@ -51,9 +51,18 @@
     li.innerHTML = `<span class="lv-who">${m.nebu ? '<i class="b-nebu">NEBU</i>' : m.from.host ? '<i class="b-host">HOST</i>' : ''}${esc(m.from.name)}</span><span class="lv-text">${esc(m.text)}</span>`;
     const ol = $('#lv-msgs'); ol.appendChild(li); while (ol.children.length > 120) ol.firstChild.remove(); ol.scrollTop = ol.scrollHeight;
   }
-  function pin(p) { const el = $('#lv-pin'); el.hidden = !p; if (p) el.innerHTML = `<b>📌</b><span>${esc(p.text)}</span>`; }
+  // Pinned notice (hidden when empty). Appears with a slide + pin drop; leaves with a quick fold.
+  function pin(p) {
+    const el = $('#lv-pin'); const text = p && String(p.text || '').trim();
+    clearTimeout(pin.t);
+    if (!text) { if (el.hidden) return; el.classList.remove('is-in'); el.classList.add('is-out'); pin.t = setTimeout(() => { el.hidden = true; el.classList.remove('is-out'); el.innerHTML = ''; }, 260); return; }
+    if (el.dataset.text === text && !el.hidden) return;
+    el.dataset.text = text;
+    el.innerHTML = `<i class="lv-pin-ico" aria-hidden="true">📌</i><span class="lv-pin-body"><em>Pinned by the host</em><span>${esc(text)}</span></span>`;
+    el.hidden = false; el.classList.remove('is-out', 'is-in'); void el.offsetWidth; el.classList.add('is-in');
+  }
   function count(n) { const el = $('#lv-count'); el.hidden = !n; el.textContent = `👁 ${Math.max(0, n - 1)}`; }
-  function announce(text) { const el = $('#lv-announce'); el.hidden = false; el.innerHTML = `<i class="b-nebu">NEBU</i><span>${esc(text)}</span>`; el.classList.remove('is-in'); void el.offsetWidth; el.classList.add('is-in'); clearTimeout(announce.t); announce.t = setTimeout(() => { el.hidden = true; }, 8000); haptic('success'); }
+  function announce(text) { const el = $('#lv-announce'); if (!String(text || '').trim()) return; el.hidden = false; el.classList.remove('is-out'); el.innerHTML = `<i class="b-nebu">NEBU</i><span>${esc(text)}</span>`; el.classList.remove('is-in'); void el.offsetWidth; el.classList.add('is-in'); clearTimeout(announce.t); announce.t = setTimeout(() => { el.classList.remove('is-in'); el.classList.add('is-out'); setTimeout(() => { el.hidden = true; el.classList.remove('is-out'); }, 260); }, 8000); haptic('success'); }
   function cards() {
     const c = $('#lv-cards'); let html = '';
     if (poll) {

@@ -163,3 +163,15 @@ body.nb-docked .st-main { margin-right: 380px; transition: margin .35s var(--eas
 @keyframes sj-in { from { opacity: 0; transform: translateY(4px); } }
 @keyframes sj-pulse { 50% { opacity: .55; } }
 @media (prefers-reduced-motion: reduce) { .sj-job, .sj-pill { animation: none !important; } }
+
+/* Host pinned bar + per-message pin */
+.nb-pin { display: flex; align-items: center; gap: 8px; }
+.nb-pin .nb-pin-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nb-pin .nb-unpin { width: 24px; height: 24px; font-size: 11px; }
+.nb-pin.is-in { animation: nbPinIn .42s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes nbPinIn { from { opacity: 0; transform: translateY(-8px) scaleY(.9); } }
+.nb-msg { position: relative; }
+.nb-pinbtn { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border: 0; border-radius: 8px; background: rgba(255,255,255,.08); font-size: 12px; opacity: 0; transition: opacity .15s; cursor: pointer; }
+.nb-msg:hover .nb-pinbtn, .nb-pinbtn:focus-visible { opacity: 1; }
+@media (hover: none) { .nb-pinbtn { opacity: .7; } }
+@media (prefers-reduced-motion: reduce) { .nb-pin { animation: none !important; } }
