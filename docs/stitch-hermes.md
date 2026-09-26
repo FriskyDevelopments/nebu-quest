@@ -1,6 +1,6 @@
-# Monthly design via Hermes Stitch
+# Monthly design: Code Pup Design (Stitch through Hermes)
 
-NEBU doesn't call Stitch itself. It hands the job to Frisky's Hermes Stitch dispatcher (`stitch.sh`, which round-robins 4 keys and runs detached). Hermes then calls NEBU back. Code: `worker/src/stitch.js`.
+The monthly design is made by **Code Pup Design**, the design side of Code Pup (same brand as the code review). Code Pup Design uses Stitch through Hermes. NEBU doesn't call Stitch itself. It hands the job to Frisky's Hermes Stitch dispatcher (`stitch.sh`, which round-robins 4 keys and runs detached). Hermes then calls NEBU back. Code: `worker/src/stitch.js`.
 
 ## Keys (Worker secrets)
 | Name | What |
@@ -51,7 +51,7 @@ Stitch currently runs on a small pool of personal Google AI Pro accounts through
 One job per calendar month (UTC) per FRISKY ID. The slot is reserved at dispatch (`stitch_quota` with primary key owner+month, so it's atomic). If the job fails at any point (dispatch, `failed` callback, save error), the slot is deleted, which is the refund.
 
 ## 6. Status in the studio
-Show panel → My packs → "Your monthly design". The status reads **Queued → Designing · round 1/3 → 2/3 → 3/3 → Ready** (or **Failed · refunded**) and refreshes every 2.5 s while a job is running. When the result is ready, its nice touch shows underneath. "Open" drops the screens onto the program as movable layers.
+Show panel → My packs → "Your monthly design · by Code Pup Design". The status reads **Queued → Designing · round 1/3 → 2/3 → 3/3 → Ready** (or **Failed · refunded**) and refreshes every 2.5 s while a job is running. When the result is ready, its nice touch shows underneath. "Open" drops the screens onto the program as movable layers.
 
 ## 7. Mock (no `HERMES_STITCH_URL`)
 The same contract runs end to end: `designing` with `round` 1, 2 and 3 about 2 s apart, then `ready` with sample SVG screens, HTML and a sample `nice_touch`. Both callbacks are HMAC-signed and go through the real callback handler, including the R2 download. Put the word "fail" in the prompt to exercise the refund path. The mock signing key is derived from `NEBU_SESSION_SECRET`, so nobody outside can forge callbacks.

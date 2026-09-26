@@ -1,4 +1,4 @@
-// Monthly design via Frisky's Hermes Stitch dispatcher (docs/stitch-hermes.md).
+// Monthly design by Code Pup Design, which uses Stitch through Frisky's Hermes dispatcher (docs/stitch-hermes.md).
 // NEBU -> POST {HERMES_STITCH_URL}/stitch/jobs  (X-Nebu-Signature: hex HMAC-SHA256(raw body, HERMES_STITCH_SECRET)) -> 202 {job_id}
 //   body also carries brief_mode:'auto'|'provided', rounds:3, nice_touch:true (pipeline rules, see docs)
 // Hermes -> POST /api/stitch/callback {job_id, status:'designing'|'ready'|'failed', round?:1..3, screens:[{htmlCode, screenshotUrl}], nice_touch?:string, error?}
@@ -73,7 +73,7 @@ export async function dispatchStitch(env, ctx, user, body, origin) {
       const r = await fetch(`${String(env.HERMES_STITCH_URL).replace(/\/+$/, "")}/stitch/jobs`, { method: "POST", headers: { "Content-Type": "application/json", "X-Nebu-Signature": await signBody(env.HERMES_STITCH_SECRET, payload) }, body: payload, signal: AbortSignal.timeout(10000) });
       ok = r.status === 202; if (!ok) err = `hermes_http_${r.status}`;
     } catch (e) { err = "hermes_unreachable"; }
-    if (!ok) { await finishFailed(env, job_id, err); return { status: 502, body: { error: err, friendly: "The design desk didn't pick this up. Your monthly design wasn't used, try again later." } }; }
+    if (!ok) { await finishFailed(env, job_id, err); return { status: 502, body: { error: err, friendly: "Code Pup Design didn't pick this up. Your monthly design wasn't used, try again later." } }; }
   } else {
     ctx.waitUntil(mockHermes(env, JSON.parse(payload)));
   }

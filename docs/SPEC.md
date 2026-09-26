@@ -12,7 +12,7 @@ I built it for people who go live with their community: DJs, hosts, creators, an
 ### Free tier
 Sign in with FRISKY ID and you get:
 - **The full studio.**
-- **One monthly design.** Each month I design one element or a small set (up to 5) for you. The job goes through my Hermes Stitch dispatcher and lands as a layered, editable pack in **My packs**, stored on Cloudflare R2. If a design fails, you get the month's slot back.
+- **One monthly design.** Each month, Code Pup Design (the design side of Code Pup) makes one element or a small set (up to 5) for you. Code Pup Design uses Stitch through my Hermes dispatcher, and the result lands as a layered, editable pack in **My packs**, stored on Cloudflare R2. If a design fails, you get the month's slot back.
 - **How each design is made:**
   - If your idea is vague, a stronger reasoning model first turns it into a concrete design brief. If you already wrote a brief, it goes straight to Stitch.
   - Stitch runs 3 rounds. Between rounds, a vision model checks the screenshot against the brief and writes what to fix next.
@@ -56,7 +56,7 @@ Lo hice para quienes transmiten en vivo con su comunidad: DJs, hosts, creadores 
 ### Plan gratis
 Entras con tu FRISKY ID y tienes:
 - **El estudio completo.**
-- **Un diseño al mes.** Cada mes te diseño un elemento o un set pequeño (hasta 5). El trabajo pasa por mi despachador Hermes Stitch y llega como un pack editable por capas a **Mis packs**, guardado en Cloudflare R2. Si un diseño falla, te regreso el lugar del mes.
+- **Un diseño al mes.** Cada mes, Code Pup Design (el lado de diseño de Code Pup) te hace un elemento o un set pequeño (hasta 5). Code Pup Design usa Stitch a través de mi despachador Hermes, y el resultado llega como un pack editable por capas a **Mis packs**, guardado en Cloudflare R2. Si un diseño falla, te regreso el lugar del mes.
 - **Cómo se hace cada diseño:**
   - Si tu idea es vaga, un modelo de razonamiento más fuerte primero la convierte en un brief de diseño concreto. Si ya escribiste tu brief, va directo a Stitch.
   - Stitch hace 3 rondas. Entre ronda y ronda, un modelo con visión revisa la captura contra el brief y escribe qué mejorar.
