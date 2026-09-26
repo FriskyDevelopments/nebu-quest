@@ -141,7 +141,7 @@ export class LiveHub extends DurableObject {
         this.broadcast({ type: "poll", poll: publicPoll(s.poll) }); break;
       }
       // Host-only admin actions
-      case "pin": if (!host) return; s.pinned = m.text ? { text: clean(m.text, 200), at: Date.now() } : null; this.broadcast({ type: "pinned", pinned: s.pinned }); break;
+      case "pin": if (!host) return; s.pinned = m.text ? { text: clean(m.text, 200), at: Date.now(), by: m.by === "nebu" ? "nebu" : "host" } : null; this.broadcast({ type: "pinned", pinned: s.pinned }); break;
       case "poll_open": {
         if (!host) return; const options = (m.options || []).map((o) => clean(o, 60)).filter(Boolean).slice(0, 4);
         if (options.length < 2) return; s.poll = { id: randomId(6), q: clean(m.q, 120), options, counts: options.map(() => 0), voters: {}, closed: false };

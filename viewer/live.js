@@ -2,6 +2,7 @@
 (() => {
   'use strict';
   const $ = (s) => document.querySelector(s);
+  const WM = () => (window.NebuBrand ? NebuBrand.wordmark('is-sm') : 'NEBU');
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const PREVIEW = /(^|\.)nebu-quest\.pages\.dev$|^localhost$|^127\.0\.0\.1$/.test(location.hostname) && location.hostname !== 'nebu-quest.pages.dev';
   const qs = new URLSearchParams(location.search);
@@ -48,7 +49,7 @@
   function msg(m, quiet) {
     const li = document.createElement('li'); const mine = me && m.from && m.from.uid === me.uid;
     li.className = `lv-msg${m.nebu ? ' is-nebu' : ''}${m.from && m.from.host && !m.nebu ? ' is-host' : ''}${mine ? ' is-mine' : ''}${quiet ? ' is-quiet' : ''}`;
-    li.innerHTML = `<span class="lv-who">${m.nebu ? '<i class="b-nebu">NEBU</i>' : m.from.host ? '<i class="b-host">HOST</i>' : ''}${esc(m.from.name)}</span><span class="lv-text">${esc(m.text)}</span>`;
+    li.innerHTML = `<span class="lv-who">${m.nebu ? `<i class="b-nebu">${WM()}</i>` : m.from.host ? '<i class="b-host">HOST</i>' : ''}${esc(m.from.name)}</span><span class="lv-text">${esc(m.text)}</span>`;
     const ol = $('#lv-msgs'); ol.appendChild(li); while (ol.children.length > 120) ol.firstChild.remove(); ol.scrollTop = ol.scrollHeight;
   }
   // Pinned notice (hidden when empty). Appears with a slide + pin drop; leaves with a quick fold.
@@ -56,13 +57,13 @@
     const el = $('#lv-pin'); const text = p && String(p.text || '').trim();
     clearTimeout(pin.t);
     if (!text) { if (el.hidden) return; el.classList.remove('is-in'); el.classList.add('is-out'); pin.t = setTimeout(() => { el.hidden = true; el.classList.remove('is-out'); el.innerHTML = ''; }, 260); return; }
-    if (el.dataset.text === text && !el.hidden) return;
-    el.dataset.text = text;
-    el.innerHTML = `<i class="lv-pin-ico" aria-hidden="true">📌</i><span class="lv-pin-body"><em>Pinned by the host</em><span>${esc(text)}</span></span>`;
+    if (el.dataset.text === text + (p.by || '') && !el.hidden) return;
+    el.dataset.text = text + (p.by || '');
+    el.innerHTML = `<i class="lv-pin-ico" aria-hidden="true">📌</i><span class="lv-pin-body"><em>Pinned by ${p.by === 'nebu' ? WM() : 'the host'}</em><span>${esc(text)}</span></span>`;
     el.hidden = false; el.classList.remove('is-out', 'is-in'); void el.offsetWidth; el.classList.add('is-in');
   }
   function count(n) { const el = $('#lv-count'); el.hidden = !n; el.textContent = `👁 ${Math.max(0, n - 1)}`; }
-  function announce(text) { const el = $('#lv-announce'); if (!String(text || '').trim()) return; el.hidden = false; el.classList.remove('is-out'); el.innerHTML = `<i class="b-nebu">NEBU</i><span>${esc(text)}</span>`; el.classList.remove('is-in'); void el.offsetWidth; el.classList.add('is-in'); clearTimeout(announce.t); announce.t = setTimeout(() => { el.classList.remove('is-in'); el.classList.add('is-out'); setTimeout(() => { el.hidden = true; el.classList.remove('is-out'); }, 260); }, 8000); haptic('success'); }
+  function announce(text) { const el = $('#lv-announce'); if (!String(text || '').trim()) return; el.hidden = false; el.classList.remove('is-out'); el.innerHTML = `<i class="b-nebu">${WM()}</i><span>${esc(text)}</span>`; el.classList.remove('is-in'); void el.offsetWidth; el.classList.add('is-in'); clearTimeout(announce.t); announce.t = setTimeout(() => { el.classList.remove('is-in'); el.classList.add('is-out'); setTimeout(() => { el.hidden = true; el.classList.remove('is-out'); }, 260); }, 8000); haptic('success'); }
   function cards() {
     const c = $('#lv-cards'); let html = '';
     if (poll) {

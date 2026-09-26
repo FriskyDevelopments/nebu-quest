@@ -173,6 +173,7 @@
     if (lt.hold && performance.now() > lt.hold) { lt.hold = 0; lt.target = 0; lt.on = false; }
     lt.p += (lt.target - lt.p) * (reduce ? 1 : .09); if (Math.abs(lt.target - lt.p) < .002) lt.p = lt.target;
     if (lt.p <= .001 || !(lt.title || lt.sub)) return;
+    if (window.NebuBrand) NebuBrand.brandText(ctx); // "NEBU" titles render as the real wordmark
     ctx.save(); ctx.textBaseline = 'alphabetic'; d.draw(ctx, lt.p, t, { title: lt.title || '', sub: lt.sub || '', W, H }); ctx.restore();
   }
   function drawOverlays(ctx, t, W, H) {

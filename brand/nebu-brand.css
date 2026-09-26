@@ -1,0 +1,5 @@
+.nebu-wm { display: inline-flex; align-items: baseline; vertical-align: baseline; line-height: 1; }
+.nebu-wm svg { height: .72em; width: auto; display: block; overflow: visible; shape-rendering: geometricPrecision; transform: translateY(.02em); }
+.nebu-vh { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+/* Small sizes (pills/badges): never below 9px tall so the E bars stay distinct */
+.nebu-wm.is-sm svg { height: max(9px, .8em); }

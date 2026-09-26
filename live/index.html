@@ -12,13 +12,14 @@
   <link rel="icon" href="/assets/nebu-icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Manrope:wght@500..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/brand/nebu-brand.css">
   <link rel="stylesheet" href="/viewer/live.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
   <div class="lv" id="app">
     <header class="lv-top">
-      <img src="/assets/nebu-mark-yellow.svg" width="34" height="27" alt="NEBU">
+      <span class="lv-mark" role="img" aria-label="NEBU"><svg viewBox="0 0 100 80" aria-hidden="true" fill="#FFD100"><rect y="0" width="100" height="15"/><rect y="32.5" width="100" height="15"/><rect y="65" width="100" height="15"/></svg><span class="nebu-vh">NEBU</span></span>
       <div class="lv-title"><b>Live chat</b><span id="lv-sub">Connecting…</span></div>
       <span class="lv-pill" id="lv-pill"><i></i>LIVE</span>
       <span class="lv-count" id="lv-count" hidden>👁 0</span>
@@ -49,6 +50,7 @@
     </div>
     <div class="lv-ended" id="lv-ended" hidden><div><h2>That's a wrap.</h2><p>This live chat has ended. Thanks for hanging out.</p></div></div>
   </div>
+  <script src="/brand/nebu-brand.js" defer></script>
   <script src="/viewer/live.js" defer></script>
 </body>
 </html>

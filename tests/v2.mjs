@@ -81,11 +81,17 @@ await p.click('.nb-tabs [data-nt="chat"]'); await p.waitForTimeout(300);
 await p.locator('#nb-msgs [data-pin="this set is fire"]').first().click({ force: true }); await v.waitForTimeout(1200);
 const pinTxt = (await v.locator('#lv-pin').isVisible()) ? await v.textContent('#lv-pin') : '';
 ok('host pin reaches viewer', pinTxt.includes('this set is fire'), `(${pinTxt.trim().slice(0, 50)})`);
+// NEBU announces while live: viewer gets the banner + "Pinned by NEBU", both with the real wordmark
+await p.locator('#an-text').scrollIntoViewIfNeeded().catch(() => {});
+if (!(await p.locator('#an-text').isVisible())) await p.click('[data-acc="announce"] summary');
+await p.fill('#an-text', 'Last call for requests. Drop yours now.'); await p.click('#an-go'); await v.waitForTimeout(2500);
+ok('viewer sees NEBU wordmark (banner + pin)', await v.locator('#lv-announce .nebu-wm svg').isVisible() && await v.locator('#lv-pin .nebu-wm svg').isVisible());
 await v.screenshot({ path: `${SHOTS}/v2-viewer-live-phone.png` });
 await p.locator('#nb-panel').screenshot({ path: `${SHOTS}/v2-chat-host-pinned-desktop.png` }).catch(() => {});
 await p.waitForTimeout(800);
 await p.click('.nb-tabs [data-nt="chat"]'); await p.waitForTimeout(300);
 const hostSaw = await p.textContent('#nb-msgs'); ok('host sees viewer chat', hostSaw.includes('this set is fire'));
+ok('host chat shows NEBU wordmark', await p.locator('#nb-msgs .nb-host .nebu-wm svg').count() > 0 || await p.locator('.nb-head .nebu-wm svg').isVisible());
 await p.screenshot({ path: `${SHOTS}/v2-chat-host-desktop.png` });
 await p.locator('#program').screenshot({ path: `${SHOTS}/v2-program-reactions-poll.png` });
 await p.click('.nb-tabs [data-nt="req"]'); await p.waitForTimeout(300);
@@ -114,9 +120,11 @@ if (process.env.SESSION) {
   await sp.fill('#sj-prompt', 'A neon lower third and a matching sticker for my late sets'); await sp.selectOption('#sj-kind', 'set');
   await sp.click('#sj-form button[type=submit]');
   const roundSeen = await sp.waitForSelector('.sj-pill:text-matches("round [23]/3")', { timeout: 20000 }).then((e) => e.textContent()).catch(() => '');
+  ok('pill uses NEBU wordmark svg', await sp.locator('.sj-pill .nebu-wm svg').count() > 0 && (await sp.locator('.sj-pill .nebu-wm').first().getAttribute('aria-label')) === 'NEBU');
   ok('designing shows NEBU round x/3', /NEBU is designing · round [23]\/3/.test(roundSeen), `(${roundSeen})`);
   await sp.locator('[data-acc="packs"]').evaluate((e) => e.scrollIntoView({ block: 'center' }));
   await sp.locator('[data-acc="packs"]').screenshot({ path: `${SHOTS}/v2-stitch-designing.png` });
+  await sp.locator('.sj-pill').first().screenshot({ path: `${SHOTS}/v2-pill-wordmark-closeup.png` }).catch(() => {});
   ok('round indicator shows progress', await sp.locator('.sj-rounds i.is-done').count() >= 1);
   await sp.waitForSelector('.sj-job.is-ready', { timeout: 30000 }).catch(() => {});
   ok('monthly design reaches Ready', await sp.locator('.sj-job.is-ready').count() > 0);
@@ -130,6 +138,10 @@ if (process.env.SESSION) {
   await sp.locator('[data-acc="packs"]').evaluate((e) => e.scrollIntoView({ block: 'center' })); await sp.waitForTimeout(300);
   await sp.locator('[data-acc="packs"]').screenshot({ path: `${SHOTS}/v2-stitch-ready.png` });
   await sp.locator('#program').screenshot({ path: `${SHOTS}/v2-stitch-on-program.png` });
+  ok('bubble reads Open NEBU', (await sp.getAttribute('#nb-btn', 'aria-label')) === 'Open NEBU');
+  await sp.hover('#nb-btn'); await sp.waitForTimeout(420);
+  const bb = await sp.locator('#nb-btn').boundingBox();
+  await sp.screenshot({ path: `${SHOTS}/v2-nebu-button-closeup.png`, clip: { x: bb.x - 24, y: bb.y - 24, width: bb.width + 48, height: bb.height + 48 } });
   await sc.close();
 }
 await browser.close();

@@ -72,3 +72,8 @@ body { background: radial-gradient(900px 500px at 50% -10%, rgba(157,0,255,.28),
 @media (prefers-reduced-motion: reduce) { .lv-pin, .lv-pin *, .lv-announce { animation: none !important; } }
 /* Fixed grid rows so hidden notices don't shift the chat/footer rows */
 .lv-top { grid-row: 1; } .lv-pin { grid-row: 2; } .lv-announce { grid-row: 3; } .lv-main { grid-row: 4; min-height: 0; } .lv-bottom { grid-row: 5; }
+/* NEBU brand */
+.lv-mark { display: inline-grid; width: 30px; height: 24px; } .lv-mark svg { width: 100%; height: 100%; filter: drop-shadow(0 0 8px rgba(255,209,0,.3)); }
+.b-nebu { display: inline-flex; align-items: center; padding: 3px 7px; line-height: 1; }
+.b-nebu .nebu-wm svg { height: 8px; }
+.lv-pin-body em .nebu-wm svg { height: 8px; transform: translateY(0); }

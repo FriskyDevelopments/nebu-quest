@@ -4,6 +4,7 @@
 (() => {
   'use strict';
   const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const WM = window.NebuBrand || { wordmark: () => '<b>NEBU</b>', mark: () => '<b>NEBU</b>' };
   const SIGNAL = (window.NEBU_SIGNAL || (($('meta[name="nebu-signal"]') || {}).content || '')).replace(/\/$/, '');
   const G = window.NebuGfx;
   const store = { get: (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* */ } } };
@@ -181,7 +182,7 @@
         $('#lt-show').textContent = 'Show lower third';
         setTimeout(() => { duckTo(1, .6); G.lt.title = $('#lt-title').value; G.lt.sub = $('#lt-sub').value; }, dur + 700);
       }, wait);
-      if (pin) hubSend({ type: 'announce', text }), hubSend({ type: 'pin', text });
+      if (pin) hubSend({ type: 'announce', text }), hubSend({ type: 'pin', text, by: 'nebu' });
       note.textContent = buf ? 'NEBU said it. Music came back up after.' : note.textContent || 'Banner shown.';
     } catch (e) { note.textContent = e.message; duckTo(1); } finally { setTimeout(() => { $('#an-go').disabled = false; }, 1500); }
   }
@@ -253,10 +254,10 @@
   }
   // Monthly design: NEBU makes it (engine: Code Pup Design via Hermes/Stitch; not named in UI). One per month per FRISKY ID; refunded if it fails.
   let sjTimer = 0;
-  const SJ_LABEL = { queued: 'Queued', designing: 'NEBU is designing', saving: 'Saving', ready: 'Ready', failed: 'Failed · refunded' };
+  const SJ_LABEL = { queued: 'Queued', designing: `${WM.wordmark('is-sm')} is designing`, saving: 'Saving', ready: 'Ready', failed: 'Failed · refunded' };
   // 3-segment round indicator: done segments fill, the current one shimmers (static under reduced motion).
   const sjRounds = (j) => { const n = j.rounds || 3, r = j.status === 'saving' ? n : (j.status === 'designing' ? (j.round || 1) : 0); return `<div class="sj-rounds" role="progressbar" aria-label="Design rounds" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${Math.max(0, r - (j.status === 'saving' ? 0 : 1))}">${Array.from({ length: n }, (_, i) => `<i class="${i + 1 < r || j.status === 'saving' ? 'is-done' : i + 1 === r ? 'is-now' : ''}"></i>`).join('')}</div>`; };
-  const sjLabel = (j) => (j.status === 'designing' && j.round ? `NEBU is designing · round ${j.round}/${j.rounds || 3}` : SJ_LABEL[j.status] || esc(j.status));
+  const sjLabel = (j) => (j.status === 'designing' && j.round ? `${WM.wordmark('is-sm')} is designing · round ${j.round}/${j.rounds || 3}` : SJ_LABEL[j.status] || esc(j.status));
   async function renderStitch() {
     const box = $('#sj'); if (!box || !me) return; clearTimeout(sjTimer);
     let r; try { r = await api('/stitch'); } catch (e) { box.innerHTML = `<p class="src-note">${esc(e.message)}</p>`; return; }
@@ -294,9 +295,9 @@
 
   // ---------------- Chat bubble ----------------
   const bubble = h(`<div class="nb" id="nb" data-state="closed">
-    <button class="nb-btn" type="button" id="nb-btn" aria-label="Open chat" aria-expanded="false"><img src="../assets/nebu-mark-yellow.svg" alt="" width="34" height="27"><b class="nb-badge" id="nb-badge" hidden>0</b></button>
+    <button class="nb-btn" type="button" id="nb-btn" aria-label="Open NEBU" aria-expanded="false">${WM.mark('nb-mark')}<b class="nb-badge" id="nb-badge" hidden>0</b></button>
     <div class="nb-panel" id="nb-panel" role="dialog" aria-label="Chat" hidden>
-      <header class="nb-head"><span class="nb-grip" aria-hidden="true"></span><b>Chat</b><span class="nb-live mono" id="nb-live">OFF AIR</span>
+      <header class="nb-head"><span class="nb-grip" aria-hidden="true"></span><b>${WM.wordmark('nb-head-wm')} Chat</b><span class="nb-live mono" id="nb-live">OFF AIR</span>
         <button class="nb-ico" type="button" id="nb-dock" title="Dock as side panel" aria-pressed="false">⇥</button><button class="nb-ico" type="button" id="nb-close" aria-label="Close chat">✕</button></header>
       <nav class="nb-tabs" role="tablist"><button role="tab" data-nt="chat" aria-selected="true">Chat</button><button role="tab" data-nt="req" aria-selected="false">Requests <i id="nb-req-n"></i></button><button role="tab" data-nt="poll" aria-selected="false">Poll</button><button role="tab" data-nt="live" aria-selected="false">Go live</button><button role="tab" data-nt="help" aria-selected="false" id="nb-help-tab" hidden>Help</button></nav>
       <div class="nb-pin" id="nb-pin" hidden></div>
@@ -333,7 +334,7 @@
     const clampPos = (x, y) => { const pad = 14, bottomSafe = isPhone() ? 96 : 24; return { x: Math.max(pad, Math.min(innerWidth - 72 - pad, x)), y: Math.max(80, Math.min(innerHeight - 72 - bottomSafe, y)) }; };
     const place = (p) => { const c = clampPos(p.x, p.y); bubble.style.left = c.x + 'px'; bubble.style.top = c.y + 'px'; bubble.style.right = 'auto'; bubble.style.bottom = 'auto'; bubble.classList.toggle('nb-left', c.x < innerWidth / 2); return c; };
     if (pos) place(pos);
-    btn.addEventListener('pointerdown', (e) => { st = { x: e.clientX, y: e.clientY, r: bubble.getBoundingClientRect() }; dragged = false; btn.setPointerCapture(e.pointerId); });
+    btn.addEventListener('pointerdown', (e) => { btn.classList.add('is-tap'); clearTimeout(btn._tap); btn._tap = setTimeout(() => btn.classList.remove('is-tap'), 900); st = { x: e.clientX, y: e.clientY, r: bubble.getBoundingClientRect() }; dragged = false; btn.setPointerCapture(e.pointerId); });
     btn.addEventListener('pointermove', (e) => { if (!st) return; const dx = e.clientX - st.x, dy = e.clientY - st.y; if (!dragged && Math.hypot(dx, dy) < 6) return; dragged = true; bubble.classList.add('is-drag'); place({ x: st.r.left + dx, y: st.r.top + dy }); });
     btn.addEventListener('pointerup', () => { if (!st) return; if (dragged) { const r = bubble.getBoundingClientRect(); const snapX = r.left + r.width / 2 < innerWidth / 2 ? 14 : innerWidth - 86; store.set('nebu:nb-pos', place({ x: snapX, y: r.top })); bubble.classList.remove('is-drag'); setTimeout(() => { dragged = false; }, 0); } st = null; });
     addEventListener('resize', () => { const p = store.get('nebu:nb-pos', null); if (p) place(p); });
@@ -342,7 +343,7 @@
   const tick = [];
   function addMsg(m) {
     const li = document.createElement('li'); li.className = `nb-msg${m.nebu ? ' is-nebu' : ''}${m.mine ? ' is-mine' : ''}`;
-    li.innerHTML = `<span class="nb-who">${m.nebu ? '<i class="nb-host">NEBU</i>' : ''}${m.host && !m.nebu ? '<i class="nb-hostb">HOST</i>' : ''}${esc(m.name)}<em class="mono">${esc(m.src)}</em></span><span class="nb-text">${esc(m.text)}</span>${m.nebu ? '' : `<button class="nb-pinbtn" type="button" data-pin="${esc(m.text)}" title="Pin for viewers" aria-label="Pin for viewers">📌</button>`}`;
+    li.innerHTML = `<span class="nb-who">${m.nebu ? `<i class="nb-host">${WM.wordmark('is-sm')}</i>` : ''}${m.host && !m.nebu ? '<i class="nb-hostb">HOST</i>' : ''}${esc(m.name)}<em class="mono">${esc(m.src)}</em></span><span class="nb-text">${esc(m.text)}</span>${m.nebu ? '' : `<button class="nb-pinbtn" type="button" data-pin="${esc(m.text)}" title="Pin for viewers" aria-label="Pin for viewers">📌</button>`}`;
     const ol = $('#nb-msgs'); ol.appendChild(li); while (ol.children.length > 150) ol.firstChild.remove(); ol.scrollTop = ol.scrollHeight;
     tick.push(`${m.name}: ${m.text}`); if (tick.length > 5) tick.shift(); G.tickerText = tick.join('   ✦   ');
     if (!m.mine) pulse();
@@ -394,7 +395,7 @@
     const el = $('#nb-pin'); const text = p && String(p.text || '').trim();
     if (!text) { el.hidden = true; el.innerHTML = ''; delete el.dataset.text; return; }
     if (el.dataset.text === text && !el.hidden) return;
-    el.dataset.text = text; el.innerHTML = `<span class="mono">📌 PINNED</span><span class="nb-pin-t">${esc(text)}</span><button class="nb-ico nb-unpin" type="button" title="Unpin" aria-label="Unpin">✕</button>`;
+    el.dataset.text = text; el.innerHTML = `<span class="mono">📌 ${p.by === 'nebu' ? `PINNED BY ${WM.wordmark('is-sm')}` : 'PINNED'}</span><span class="nb-pin-t">${esc(text)}</span><button class="nb-ico nb-unpin" type="button" title="Unpin" aria-label="Unpin">✕</button>`;
     el.hidden = false; el.classList.remove('is-in'); void el.offsetWidth; el.classList.add('is-in');
     el.querySelector('.nb-unpin').onclick = () => hubSend({ type: 'pin', text: '' });
   }
