@@ -196,3 +196,4 @@ body.nb-docked .st-main { margin-right: 380px; transition: margin .35s var(--eas
 #panel-show { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
 @media (max-width: 820px) { #panel-show { padding-bottom: calc(160px + env(safe-area-inset-bottom)); } }
 @media (prefers-reduced-motion: reduce) { .sj-rounds i::after { transition: none; } .sj-rounds i.is-now::after { animation: none; transform: scaleX(.5); } .sj-touch { animation: none; } }
+.packs li b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
