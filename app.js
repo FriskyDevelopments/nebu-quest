@@ -19,18 +19,19 @@
  *
  * index.html should also carry a <noscript> fallback, e.g.:
  *   <noscript><p>NEBU is a browser studio. Enable JavaScript to browse the
- *   sections, or <a href="https://vc.friskydev.com/">open your studio</a>.</p></noscript>
+ *   sections, or <a href="/studio/">open your studio</a>.</p></noscript>
  *
  * Behavior: accessible feature tabs (aria-selected + arrow/Home/End keys),
  * IntersectionObserver data-reveal animations, smooth anchor scroll, mobile
- * nav toggle. All "Open your studio" links resolve to STUDIO_URL.
+ * nav toggle. All "Open your studio" links resolve to STUDIO_URL (the
+ * in-browser studio at /studio/).
  * No dependencies.
  */
 (() => {
   'use strict';
   document.documentElement.classList.add('js');
 
-  const STUDIO_URL = 'https://vc.friskydev.com/';
+  const STUDIO_URL = '/studio/';
   const SECTIONS_URL = 'sections.html';
 
   const FEATURES = {
@@ -71,7 +72,7 @@
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function wireStudioLinks(root) {
-    root.querySelectorAll('a[href*="vc.friskydev.com"], a[data-studio]').forEach((a) => {
+    root.querySelectorAll('a[data-studio]').forEach((a) => {
       if (a.getAttribute('href') !== STUDIO_URL) a.setAttribute('href', STUDIO_URL);
     });
   }

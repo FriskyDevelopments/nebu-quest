@@ -1,24 +1,26 @@
 /*
  * NEBU — On air / Add to OBS (Track B).
  *
- * One click on #obs-copy-btn copies the Browser Source configuration shown
- * in #obs-config (URL plus the four settings) and brings that checklist
- * on screen. The URL is the line you paste into OBS; the rest you match.
+ * One click on #obs-copy-btn copies the Browser Source checklist shown in
+ * #obs-config and brings it on screen. The URL itself comes from the studio
+ * (Room panel -> "Copy OBS feed link"), because every room has its own
+ * receive-only feed: /studio/?room=<id>&view=clean.
  *
  * Clipboard: navigator.clipboard.writeText, then document.execCommand('copy').
- * No dependencies. Does not invent studio query params.
+ * No dependencies.
  */
 (function () {
   'use strict';
 
-  var OBS_URL = 'https://vc.friskydev.com/studio?obs=1&layout=clean';
   var OBS_CONFIG = [
-    'URL: ' + OBS_URL,
+    '1. Open a room at https://nebu.quest/studio/',
+    '2. Room panel -> Copy OBS feed link',
+    '3. OBS: Sources + -> Browser, paste the link as the URL',
     'Width: 1920',
     'Height: 1080',
     'FPS: 30',
-    'Shutdown source when not visible: CHECKED',
-    'Refresh browser when scene becomes active: UNCHECKED'
+    'Control audio via OBS: CHECKED',
+    'Shutdown source when not visible: UNCHECKED'
   ].join('\n');
 
   function prefersReducedMotion() {
@@ -47,14 +49,8 @@
     }
   }
 
-  function payload(btn) {
-    var fromBtn = btn && btn.getAttribute('data-obs-url');
-    var url = fromBtn || OBS_URL;
-    var pre = configNode();
-    var shown = pre && pre.textContent ? pre.textContent.trim() : '';
-    if (!shown) shown = OBS_CONFIG;
-    if (shown.indexOf(url) === -1) shown = 'URL: ' + url + '\n' + shown;
-    return shown;
+  function payload() {
+    return OBS_CONFIG;
   }
 
   function setStatus(label) {
@@ -122,8 +118,8 @@
   function onCopy(event) {
     var btn = event.currentTarget;
     showConfig();
-    copyText(payload(btn)).then(function (ok) {
-      confirmCopied(btn, ok ? 'Copied' : 'Copy failed — select the checklist and copy it');
+    copyText(payload()).then(function (ok) {
+      confirmCopied(btn, ok ? 'Copied' : 'Copy failed. Select the checklist and copy it.');
     });
   }
 
@@ -133,7 +129,6 @@
     if (!btn && scope.id === 'obs-copy-btn') btn = scope;
     if (!btn || btn.getAttribute('data-obs-wired') === '1') return false;
     btn.setAttribute('data-obs-wired', '1');
-    if (!btn.getAttribute('data-obs-url')) btn.setAttribute('data-obs-url', OBS_URL);
     btn.addEventListener('click', onCopy);
     return true;
   }

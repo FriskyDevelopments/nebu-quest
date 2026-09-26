@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B001A">
+  <title>NEBU Studio — Set the scene.</title>
+  <meta name="description" content="Your browser studio: camera, screen and video in one scene, a live audio mix, rooms for your people and recordings saved to your device.">
+  <meta name="nebu-signal" content="https://nebu-rooms.hrgrrtks2p.workers.dev">
+  <link rel="canonical" href="https://nebu.quest/studio/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="NEBU">
+  <meta property="og:title" content="NEBU Studio — Set the scene.">
+  <meta property="og:description" content="Camera, screen, video and sound in one browser studio. Open a room, bring your people in, record the good bits.">
+  <meta property="og:image" content="https://nebu.quest/assets/nebu-social.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="../assets/nebu-icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Manrope:wght@400..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="studio.css">
+</head>
+<body class="st">
+  <svg class="svg-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+    <symbol id="i-camera" viewBox="0 0 32 32"><rect x="3" y="7" width="18" height="18" rx="4"/><path d="m21 13 8-5v16l-8-5"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 32 32"><rect x="11" y="3" width="10" height="17" rx="5"/><path d="M6 15a10 10 0 0 0 20 0M16 25v4M11 29h10"/></symbol>
+    <symbol id="i-screen" viewBox="0 0 32 32"><rect x="3" y="5" width="26" height="17" rx="3"/><path d="M11 28h10M16 22v6"/></symbol>
+    <symbol id="i-film" viewBox="0 0 32 32"><rect x="4" y="5" width="24" height="22" rx="3"/><path d="M10 5v22M22 5v22M4 11h6M4 16h6M4 21h6M22 11h6M22 16h6M22 21h6"/></symbol>
+    <symbol id="i-type" viewBox="0 0 32 32"><path d="M6 8V5h20v3M16 5v22M11 27h10"/></symbol>
+    <symbol id="i-people" viewBox="0 0 32 32"><circle cx="12" cy="10" r="5"/><path d="M2 28v-3a10 10 0 0 1 20 0v3M23 5a5 5 0 0 1 0 10M25 20a8 8 0 0 1 5 8"/></symbol>
+    <symbol id="i-record" viewBox="0 0 32 32"><circle cx="16" cy="16" r="12"/><circle cx="16" cy="16" r="5" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 32 32"><path d="M5 13v6M11 6v20M17 10v12M23 3v26M29 13v6"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/></symbol>
+    <symbol id="i-star" viewBox="0 0 40 40"><path d="M20 0 24 13 35 5 27 16 40 20 27 24 35 35 24 27 20 40 16 27 5 35 13 24 0 20 13 16 5 5 16 13Z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  </defs></svg>
+
+  <a class="skip-link" href="#stage">Skip to the stage</a>
+
+  <header class="st-top">
+    <a class="st-logo" href="../" aria-label="NEBU home"><img src="../assets/nebu-wordmark-paper.svg" width="104" height="24" alt="NEBU"></a>
+    <span class="st-tag mono">STUDIO</span>
+    <div class="st-top-status">
+      <span class="pill" id="room-pill" data-state="off"><i aria-hidden="true"></i><span>No room</span></span>
+    </div>
+    <div class="st-top-actions">
+      <button class="btn btn-ghost" type="button" id="top-invite" hidden><svg aria-hidden="true"><use href="#i-link"/></svg><span>Invite</span></button>
+      <button class="btn btn-rec" type="button" id="rec-btn" aria-pressed="false" disabled title="Record the program output (R)"><i class="rec-dot" aria-hidden="true"></i><span class="rec-label">Record</span><span class="rec-time mono" id="rec-time" aria-hidden="true">00:00</span></button>
+    </div>
+  </header>
+
+  <main class="st-main" id="main">
+    <!-- Sources -->
+    <section class="panel st-sources" id="panel-sources" aria-labelledby="sources-h" data-panel="sources">
+      <h2 class="panel-h mono" id="sources-h">Sources</h2>
+
+      <div class="src" data-src="camera">
+        <div class="src-row">
+          <svg class="src-ico" aria-hidden="true"><use href="#i-camera"/></svg>
+          <span class="src-name">Camera</span>
+          <button class="switch" type="button" role="switch" aria-checked="false" id="cam-toggle" aria-label="Camera on or off"><i></i></button>
+        </div>
+        <label class="field"><span class="sr-only">Camera device</span><select id="cam-select" disabled><option>No camera yet</option></select></label>
+        <label class="check"><input type="checkbox" id="cam-mirror"> <span>Mirror</span></label>
+      </div>
+
+      <div class="src" data-src="mic">
+        <div class="src-row">
+          <svg class="src-ico" aria-hidden="true"><use href="#i-mic"/></svg>
+          <span class="src-name">Microphone</span>
+          <button class="switch" type="button" role="switch" aria-checked="false" id="mic-toggle" aria-label="Microphone on or off"><i></i></button>
+        </div>
+        <label class="field"><span class="sr-only">Microphone device</span><select id="mic-select" disabled><option>No microphone yet</option></select></label>
+      </div>
+
+      <div class="src" data-src="screen">
+        <div class="src-row">
+          <svg class="src-ico" aria-hidden="true"><use href="#i-screen"/></svg>
+          <span class="src-name">Screen</span>
+          <span class="src-state mono" id="screen-state">OFF</span>
+        </div>
+        <button class="btn btn-line btn-block" type="button" id="screen-btn">Share a screen, window or tab</button>
+        <p class="src-note" id="screen-note">Pick a tab to bring its audio into the mix.</p>
+      </div>
+
+      <div class="src" data-src="video">
+        <div class="src-row">
+          <svg class="src-ico" aria-hidden="true"><use href="#i-film"/></svg>
+          <span class="src-name">Video</span>
+          <span class="src-state mono" id="video-state">NONE</span>
+        </div>
+        <label class="btn btn-line btn-block file-btn"><input type="file" id="video-file" accept="video/*,audio/*"><span>Line up a video file</span></label>
+        <div class="src-controls" id="video-controls" hidden>
+          <button class="btn btn-mini" type="button" id="video-play">Play</button>
+          <button class="btn btn-mini" type="button" id="video-restart">Restart</button>
+          <label class="check"><input type="checkbox" id="video-loop" checked> <span>Loop</span></label>
+          <button class="btn btn-mini btn-quiet" type="button" id="video-clear">Remove</button>
+        </div>
+        <p class="src-note">Plays from your device. Nothing is uploaded.</p>
+      </div>
+
+      <div class="src" data-src="title">
+        <div class="src-row">
+          <svg class="src-ico" aria-hidden="true"><use href="#i-type"/></svg>
+          <span class="src-name">Lower third</span>
+          <button class="switch" type="button" role="switch" aria-checked="false" id="title-toggle" aria-label="Show lower third"><i></i></button>
+        </div>
+        <label class="field"><span class="sr-only">Lower third headline</span><input type="text" id="title-text" maxlength="48" placeholder="Your name" autocomplete="off"></label>
+        <label class="field"><span class="sr-only">Lower third subline</span><input type="text" id="title-sub" maxlength="64" placeholder="What this is about" autocomplete="off"></label>
+      </div>
+    </section>
+
+    <!-- Stage + takes -->
+    <div class="st-center">
+    <section class="st-stage" id="stage" aria-label="Program output">
+      <div class="program-wrap">
+        <div class="program" id="program-box">
+          <canvas id="program" width="1280" height="720" aria-label="Program output: what you record and what your room sees"></canvas>
+          <span class="program-tag mono"><i aria-hidden="true"></i><span id="program-tag">PROGRAM</span></span>
+          <span class="program-res mono" aria-hidden="true">1280×720 · 30</span>
+        </div>
+      </div>
+      <div class="layouts" role="radiogroup" aria-label="Scene layout">
+        <button type="button" role="radio" class="layout" data-layout="cam" aria-checked="true"><span class="lay-ico lay-cam" aria-hidden="true"></span><span>Camera</span><kbd>1</kbd></button>
+        <button type="button" role="radio" class="layout" data-layout="screen" aria-checked="false"><span class="lay-ico lay-screen" aria-hidden="true"></span><span>Screen</span><kbd>2</kbd></button>
+        <button type="button" role="radio" class="layout" data-layout="pip" aria-checked="false"><span class="lay-ico lay-pip" aria-hidden="true"></span><span>Screen + cam</span><kbd>3</kbd></button>
+        <button type="button" role="radio" class="layout" data-layout="split" aria-checked="false"><span class="lay-ico lay-split" aria-hidden="true"></span><span>Side by side</span><kbd>4</kbd></button>
+        <button type="button" role="radio" class="layout" data-layout="room" aria-checked="false"><span class="lay-ico lay-room" aria-hidden="true"></span><span>Room grid</span><kbd>5</kbd></button>
+      </div>
+      <div class="stage-meta mono" aria-label="Output details">
+        <span><b>Records as</b> <em id="meta-format">—</em></span>
+        <span><b>Room</b> <em id="meta-room">Off</em></span>
+        <span class="meta-keys"><b>Keys</b> <em>1–5 layouts · R record</em></span>
+      </div>
+      <p class="stage-note" id="stage-note" role="status" aria-live="polite"></p>
+    </section>
+    <section class="panel st-takes" id="panel-takes" aria-labelledby="takes-h" data-panel="takes">
+      <h2 class="panel-h mono" id="takes-h">Takes</h2>
+      <p class="takes-empty" id="takes-empty">Hit Record to capture the program with the full mix. Takes download straight to your device.</p>
+      <ol class="takes" id="takes"></ol>
+    </section>
+    </div>
+
+    <!-- Right column -->
+    <div class="st-side">
+      <section class="panel st-mixer" id="panel-mix" aria-labelledby="mix-h" data-panel="mix">
+        <h2 class="panel-h mono" id="mix-h">Mix</h2>
+        <div class="strips" id="strips"></div>
+        <p class="src-note">Hear = play it through your speakers. Use headphones when your mic is open.</p>
+      </section>
+
+      <section class="panel st-room" id="panel-room" aria-labelledby="room-h" data-panel="room">
+        <h2 class="panel-h mono" id="room-h">Room</h2>
+        <div class="room-off" id="room-off">
+          <p class="room-lead">Open a room and send the link. Up to four people join from their browser; what you see in the program is what they get.</p>
+          <label class="field"><span class="field-label mono">Your name</span><input type="text" id="my-name" maxlength="32" placeholder="Name people will see" autocomplete="nickname"></label>
+          <button class="btn btn-yellow btn-block" type="button" id="room-open"><svg aria-hidden="true"><use href="#i-people"/></svg><span>Open a room</span></button>
+        </div>
+        <div class="room-on" id="room-on" hidden>
+          <div class="invite">
+            <span class="field-label mono">Invite link</span>
+            <code class="invite-url" id="invite-url"></code>
+            <div class="invite-actions">
+              <button class="btn btn-yellow btn-mini" type="button" id="invite-copy">Copy link</button>
+              <button class="btn btn-mini" type="button" id="invite-share" hidden>Share</button>
+              <button class="btn btn-mini" type="button" id="feed-copy" title="Receive-only link for an OBS Browser Source">Copy OBS feed link</button>
+            </div>
+            <details class="cal">
+              <summary>Add it to a calendar</summary>
+              <div class="cal-body">
+                <label class="field"><span class="field-label mono">Starts</span><input type="datetime-local" id="cal-when"></label>
+                <label class="field"><span class="field-label mono">Minutes</span><input type="number" id="cal-len" min="5" max="480" step="5" value="30"></label>
+                <button class="btn btn-mini" type="button" id="cal-dl">Download .ics</button>
+              </div>
+            </details>
+          </div>
+          <ul class="people" id="people" aria-live="polite"></ul>
+          <button class="btn btn-line btn-block" type="button" id="room-leave">Leave room</button>
+        </div>
+        <p class="src-note" id="room-status" role="status" aria-live="polite"></p>
+      </section>
+
+    </div>
+  </main>
+
+  <nav class="st-tabs" aria-label="Studio panels">
+    <button type="button" data-tab="sources" aria-pressed="true"><svg aria-hidden="true"><use href="#i-camera"/></svg>Sources</button>
+    <button type="button" data-tab="mix" aria-pressed="false"><svg aria-hidden="true"><use href="#i-sound"/></svg>Mix</button>
+    <button type="button" data-tab="room" aria-pressed="false"><svg aria-hidden="true"><use href="#i-people"/></svg>Room</button>
+    <button type="button" data-tab="takes" aria-pressed="false"><svg aria-hidden="true"><use href="#i-record"/></svg>Takes</button>
+  </nav>
+
+  <!-- Clean feed (OBS / receive-only) -->
+  <div class="feed" id="feed" hidden>
+    <div class="feed-grid" id="feed-grid"></div>
+    <p class="feed-wait mono" id="feed-wait">Waiting for the room…</p>
+    <button class="btn btn-yellow feed-unmute" type="button" id="feed-unmute" hidden>Turn sound on</button>
+  </div>
+
+  <!-- Gate -->
+  <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-h">
+    <div class="gate-card">
+      <p class="eyebrow mono" id="gate-eyebrow">NEBU STUDIO</p>
+      <h1 id="gate-h">Set the<br><span>scene.</span><svg class="gate-star" aria-hidden="true"><use href="#i-star"/></svg></h1>
+      <p class="gate-lead" id="gate-lead">Your camera, screen, video and sound in one scene. Everything runs in this tab; nothing is uploaded unless you open a room.</p>
+      <label class="field gate-name" id="gate-name-wrap" hidden><span class="field-label mono">Your name</span><input type="text" id="gate-name" maxlength="32" placeholder="Name people will see" autocomplete="nickname"></label>
+      <div class="gate-actions">
+        <button class="btn btn-yellow" type="button" id="gate-go"><svg aria-hidden="true"><use href="#i-camera"/></svg><span>Turn on camera &amp; mic</span></button>
+        <button class="btn btn-ghost" type="button" id="gate-skip">Start without them</button>
+      </div>
+      <p class="gate-error" id="gate-error" role="alert"></p>
+      <p class="gate-fine mono">Your browser will ask first. You can switch devices any time.</p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <video id="media" playsinline preload="auto" hidden></video>
+  <script src="studio.js" defer></script>
+</body>
+</html>
