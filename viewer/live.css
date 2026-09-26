@@ -70,3 +70,5 @@ body { background: radial-gradient(900px 500px at 50% -10%, rgba(157,0,255,.28),
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
 @media (prefers-reduced-motion: reduce) { .lv-pin, .lv-pin *, .lv-announce { animation: none !important; } }
+/* Fixed grid rows so hidden notices don't shift the chat/footer rows */
+.lv-top { grid-row: 1; } .lv-pin { grid-row: 2; } .lv-announce { grid-row: 3; } .lv-main { grid-row: 4; min-height: 0; } .lv-bottom { grid-row: 5; }
