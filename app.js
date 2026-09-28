@@ -169,7 +169,7 @@
         entry.target.classList.add('is-visible');
         io.unobserve(entry.target);
       });
-    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+    }, { rootMargin: '0px 0px -4% 0px', threshold: 0.08 });
     nodes.forEach((node) => io.observe(node));
     requestAnimationFrame(() => requestAnimationFrame(() => {
       nodes.forEach((node) => {
@@ -177,6 +177,42 @@
         if (r.top < window.innerHeight && r.bottom > 0) node.classList.add('is-visible');
       });
     }));
+    window.setTimeout(() => {
+      nodes.forEach((node) => node.classList.add('is-visible'));
+    }, 900);
+  }
+
+  function pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function formatClock(date) {
+    return pad2(date.getHours()) + ':' + pad2(date.getMinutes()) + ':' + pad2(date.getSeconds());
+  }
+
+  function wireClocks() {
+    const nodes = [...document.querySelectorAll('[data-nav-clock], [data-stage-clock]')];
+    if (!nodes.length) return;
+    const tick = () => {
+      const stamp = formatClock(new Date());
+      nodes.forEach((node) => {
+        node.textContent = stamp;
+        if (node.tagName === 'TIME') node.setAttribute('datetime', new Date().toISOString());
+      });
+    };
+    tick();
+    window.setInterval(tick, 1000);
+  }
+
+  function wireStudioHotkey() {
+    document.addEventListener('keydown', (event) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key !== 's' && event.key !== 'S') return;
+      const tag = (event.target && event.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (event.target && event.target.isContentEditable)) return;
+      event.preventDefault();
+      window.location.assign(STUDIO_URL);
+    });
   }
 
   function wireMenu() {
@@ -379,6 +415,8 @@
   function boot() {
     wireMenu();
     wireSmoothAnchors();
+    wireClocks();
+    wireStudioHotkey();
     const main = document.querySelector('main#main, #main');
     if (!main || mountsComplete()) {
       wireAll(document);
