@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="is-standby">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -30,6 +30,30 @@
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
+  <noscript><style>.standby{display:none!important}html.is-standby,html.is-standby body{overflow:auto}</style></noscript>
+  <div class="standby" id="standby">
+    <div class="standby-plate">
+      <p class="standby-kicker">STAND BY</p>
+      <img class="standby-mark" src="assets/nebu-wordmark-paper.svg" width="220" height="50" alt="">
+      <div class="standby-bar" aria-hidden="true"><i></i></div>
+      <p class="standby-count" data-standby-count>00</p>
+      <p class="standby-meta">PROGRAM &middot; 1280&times;720 &middot; 30</p>
+    </div>
+    <button class="standby-skip" type="button">Skip intro</button>
+  </div>
+  <div class="cursor" hidden aria-hidden="true"><i class="cursor-dot"></i><i class="cursor-ring"></i></div>
+  <noscript><style>.standby{display:none!important}html.is-standby,html.is-standby body{overflow:auto}</style></noscript>
+  <div class="standby" id="standby">
+    <div class="standby-plate">
+      <p class="standby-kicker">STAND BY</p>
+      <img class="standby-mark" src="assets/nebu-wordmark-paper.svg" width="220" height="50" alt="">
+      <div class="standby-bar" aria-hidden="true"><i></i></div>
+      <p class="standby-count" data-standby-count>00</p>
+      <p class="standby-meta">PROGRAM · 1280×720 · 30</p>
+    </div>
+    <button class="standby-skip" type="button">Skip intro</button>
+  </div>
+  <div class="cursor" hidden aria-hidden="true"><i class="cursor-dot"></i><i class="cursor-ring"></i></div>
   <svg class="svg-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
     <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
     <symbol id="external" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6h12v12"/></symbol>
@@ -50,7 +74,7 @@
         <a href="#features">The studio</a>
         <a href="#steps">Your kind of live</a>
         <a href="#faq">Good to know</a>
-        <a class="button button-yellow nav-cta" href="/studio/" data-studio>Open studio <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a>
+        <a class="button button-yellow nav-cta" href="/studio/" data-studio data-magnetic>Open studio <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a>
       </nav>
     </div>
   </header>
@@ -64,7 +88,11 @@
           <span>1280×720 · 30</span>
           <time data-stage-clock>00:00:00</time>
         </div>
-        <div id="scene-hero" role="img" aria-label="Live animated NEBU scene. Drag to orbit."></div>
+        <div id="scene-hero" role="img" aria-label="Live animated NEBU scene. Move to pull the field. Drag to orbit."></div>
+        <div class="stage-grain" aria-hidden="true"></div>
+        <div class="stage-scan" aria-hidden="true"></div>
+        <div class="stage-vignette" aria-hidden="true"></div>
+        <p class="stage-watermark" aria-hidden="true">PROGRAM</p>
         <div class="stage-safe" aria-hidden="true"></div>
         <div class="stage-meters" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
         <div class="stage-stickers" aria-hidden="true">
@@ -74,15 +102,19 @@
           <span class="sticker sticker-rec">RECORD</span>
         </div>
         <p class="eyebrow hero-kicker"><span class="status-dot" aria-hidden="true"></span> YOUR BROWSER. YOUR STAGE.</p>
-        <h1 id="hero-title">Set the scene.<svg class="title-star" aria-hidden="true"><use href="#star"/></svg></h1>
+        <h1 id="hero-title">
+          <span class="hero-line" data-split>Set the</span>
+          <span class="hero-line" data-split>scene.</span>
+          <svg class="title-star" aria-hidden="true"><use href="#star"/></svg>
+        </h1>
         <div class="hero-copy">
           <p class="hero-description">Your scene. Your sound. Your people. A browser studio for the things you want to put out into the world.</p>
           <div class="hero-actions">
-            <a class="button button-yellow" href="/studio/" data-studio>Open your studio <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a>
-            <a class="text-link" href="#features">Take a look around <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a>
+            <a class="button button-yellow" href="/studio/" data-studio data-magnetic>Open your studio <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a>
+            <a class="text-link" href="#features" data-magnetic>Take a look around <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a>
           </div>
         </div>
-        <p class="scene-hud mono" aria-hidden="true">LIVE SCENE — DRAG TO ORBIT · S OPENS STUDIO</p>
+        <p class="scene-hud mono" aria-hidden="true">LIVE SCENE — PULL THE FIELD · DRAG TO ORBIT · S OPENS STUDIO</p>
       </div>
     </section>
 

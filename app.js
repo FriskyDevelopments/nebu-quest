@@ -215,6 +215,141 @@
     });
   }
 
+  function clamp01(v) {
+    return v < 0 ? 0 : v > 1 ? 1 : v;
+  }
+
+  function wireType() {
+    document.querySelectorAll('[data-split]').forEach((line) => {
+      const text = line.textContent;
+      if (!text) return;
+      line.setAttribute('aria-label', text);
+      line.replaceChildren();
+      [...text].forEach((ch, i) => {
+        const span = document.createElement('span');
+        span.className = 'char';
+        span.style.setProperty('--i', String(i));
+        span.textContent = ch === ' ' ? '\u00a0' : ch;
+        line.append(span);
+      });
+    });
+  }
+
+  function goLive() {
+    const root = document.documentElement;
+    if (root.classList.contains('is-live')) return;
+    root.classList.add('is-going-live');
+    window.setTimeout(() => {
+      root.classList.remove('is-standby', 'is-going-live');
+      root.classList.add('is-live');
+      const plate = document.getElementById('standby');
+      if (plate) plate.setAttribute('aria-hidden', 'true');
+    }, reduceMotion ? 0 : 720);
+  }
+
+  function wireBoot() {
+    const root = document.documentElement;
+    const count = document.querySelector('[data-standby-count]');
+    const skip = document.querySelector('.standby-skip');
+    if (reduceMotion) {
+      root.classList.remove('is-standby');
+      root.classList.add('is-live');
+      return;
+    }
+    let done = false;
+    const started = performance.now();
+    const tick = (now) => {
+      if (done) return;
+      const t = Math.min(1, (now - started) / 1280);
+      const n = String(Math.round(t * 100)).padStart(2, '0');
+      if (count) count.textContent = n;
+      root.style.setProperty('--boot', String(t));
+      if (t < 1) {
+        requestAnimationFrame(tick);
+        return;
+      }
+      done = true;
+      goLive();
+    };
+    const finish = () => {
+      if (done) return;
+      done = true;
+      if (count) count.textContent = '100';
+      root.style.setProperty('--boot', '1');
+      goLive();
+    };
+    if (skip) skip.addEventListener('click', finish, { once: true });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && root.classList.contains('is-standby')) finish();
+    });
+    const ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    Promise.race([
+      ready,
+      new Promise((resolve) => window.setTimeout(resolve, 900))
+    ]).then(() => requestAnimationFrame(tick));
+  }
+
+  function wireCursor() {
+    const fine = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const node = document.querySelector('.cursor');
+    if (!node || reduceMotion || !fine.matches) return;
+    node.hidden = false;
+    document.documentElement.classList.add('has-cursor');
+    let x = 0;
+    let y = 0;
+    let rx = 0;
+    let ry = 0;
+    let tx = window.innerWidth / 2;
+    let ty = window.innerHeight / 2;
+    document.addEventListener('pointermove', (event) => {
+      tx = event.clientX;
+      ty = event.clientY;
+      node.classList.toggle('is-hot', !!event.target.closest('a, button, [data-magnetic], summary'));
+    }, { passive: true });
+    const loop = () => {
+      x += (tx - x) * 0.38;
+      y += (ty - y) * 0.38;
+      rx += (tx - rx) * 0.16;
+      ry += (ty - ry) * 0.16;
+      node.style.setProperty('--x', x.toFixed(2) + 'px');
+      node.style.setProperty('--y', y.toFixed(2) + 'px');
+      node.style.setProperty('--rx', rx.toFixed(2) + 'px');
+      node.style.setProperty('--ry', ry.toFixed(2) + 'px');
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+
+  function wireMagnetic() {
+    if (reduceMotion) return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    document.querySelectorAll('[data-magnetic]').forEach((el) => {
+      el.addEventListener('pointermove', (event) => {
+        const r = el.getBoundingClientRect();
+        const dx = (event.clientX - (r.left + r.width / 2)) * 0.28;
+        const dy = (event.clientY - (r.top + r.height / 2)) * 0.28;
+        el.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)';
+      });
+      el.addEventListener('pointerleave', () => {
+        el.style.transform = '';
+      });
+    });
+  }
+
+  function wireHeroScroll() {
+    const hero = document.querySelector('.hero-stage');
+    if (!hero) return;
+    const apply = () => {
+      const r = hero.getBoundingClientRect();
+      const p = reduceMotion ? 0 : clamp01(-r.top / Math.max(r.height * 0.72, 1));
+      document.documentElement.style.setProperty('--scroll', p.toFixed(4));
+      document.documentElement.classList.toggle('is-scrolled', window.scrollY > 18);
+    };
+    apply();
+    window.addEventListener('scroll', apply, { passive: true });
+    window.addEventListener('resize', apply);
+  }
+
   function wireMenu() {
     const button = document.querySelector('.menu-toggle');
     const nav = document.querySelector('#navigation');
@@ -413,6 +548,11 @@
   }
 
   function boot() {
+    wireType();
+    wireBoot();
+    wireCursor();
+    wireMagnetic();
+    wireHeroScroll();
     wireMenu();
     wireSmoothAnchors();
     wireClocks();
