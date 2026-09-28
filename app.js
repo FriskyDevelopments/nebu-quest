@@ -36,36 +36,36 @@
 
   const FEATURES = {
     picture: {
-      kicker: 'PICTURE / FIND YOUR FRAME',
-      title: 'You call\nthe shots.',
-      description: 'Choose your camera, share your screen, or line up a video. Preview your scene before it reaches the room.',
-      points: ['Camera and microphone setup', 'Screen sharing and video rundown', 'Local preview before sharing'],
-      label: '01 — PICTURE',
-      bottom: 'Prepare → Preview → Share'
+      kicker: 'FACE / THE SHOWCASE',
+      title: 'The face\nin the room.',
+      description: 'You are the showcase: camera, screen, or prepared video, previewed before it reaches the room. Set the scene once — it stays up when you step out.',
+      points: ['Camera, screen, or prepared video', 'Local preview before sharing', 'Shareable overlay via OBS or Boom'],
+      label: '01 — FACE',
+      bottom: 'Set the scene → Show your face'
     },
     sound: {
-      kicker: 'SOUND / SET THE MOOD',
-      title: 'Find your\nfrequency.',
-      description: 'Keep your voice and your video in balance. Adjust their audio independently while you prepare your scene.',
-      points: ['Choose your microphone', 'Adjust microphone and video volume', 'Prepare audio before sharing'],
-      label: '02 — SOUND',
-      bottom: 'Your voice. Your video. Your mix.'
+      kicker: 'LINEUP / HOLD THE ROOM',
+      title: 'Press play.\nWalk away.',
+      description: 'Line up your videos and balance voice against playback before anyone arrives. The lineup keeps playing while you are gone — Spotify stays on its own device.',
+      points: ['Queue prepared videos in order', 'Balance microphone and video volume', 'The lineup runs while you are out'],
+      label: '02 — LINEUP',
+      bottom: 'Line it up → It keeps playing'
     },
     people: {
-      kicker: 'PEOPLE / MAKE SOME ROOM',
-      title: 'A link.\nYour people.',
-      description: 'Give your next conversation a place to happen. Open a room and invite a small group to join you.',
-      points: ['Create or join a video room', 'Copy and share a room invitation', 'Add the room to your calendar'],
-      label: '03 — PEOPLE',
-      bottom: 'Open a room → Share the invitation'
+      kicker: 'DOOR / STAYS OPEN',
+      title: 'One link.\nZero policing.',
+      description: 'Open a room and share one invite link — new people keep joining while you are gone. Basic room order (mute, kick) holds the line without you.',
+      points: ['Create a room, share one invite', 'New people join while you are out', 'Basic order: mute and kick'],
+      label: '03 — DOOR',
+      bottom: 'Open the room → Share the invite'
     },
     record: {
-      kicker: 'RECORD / KEEP THE GOOD BITS',
-      title: 'Worth making.\nWorth keeping.',
-      description: 'Capture the output you choose and save the recording to your device. A take to keep, revisit or share later.',
-      points: ['Record your selected output', 'Start and stop from the studio', 'Download to your device'],
-      label: '04 — RECORD',
-      bottom: 'Record → Download → Keep'
+      kicker: 'RECAP / COME BACK TO',
+      title: 'Leave.\nReplay later.',
+      description: 'Record the output you choose and download it to your device. No auto-written summaries — you come back to the tape itself and catch up fast.',
+      points: ['Record your selected output', 'Start and stop from the studio', 'Download and revisit the tape'],
+      label: '04 — RECAP',
+      bottom: 'Record → Download → Recap'
     }
   };
 
