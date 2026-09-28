@@ -26,12 +26,15 @@ export class MtcuteAdapter {
   async logOut() { const tg = await this.client(); await tg.call({ _: "auth.logOut" }); await this.close(); return true; }
   async savedStickerSets() { const tg = await this.client(); const r = await tg.call({ _: "messages.getAllStickers", hash: 0 }); await this.close(); return (r.sets || []).map((s) => ({ name: s.shortName, title: s.title, count: s.count })); }
   async post(peer, text) { const tg = await this.client(); const m = await tg.sendText(peer, text); await this.close(); return { ok: true, id: m.id }; }
-  async goLive(peer) {
+  async goLive(peer, opts = {}) {
     const tg = await this.client();
     const inputPeer = await tg.resolvePeer(peer);
     await tg.call({ _: "phone.createGroupCall", peer: inputPeer, randomId: Math.floor(Math.random() * 2 ** 31), rtmpStream: true });
-    const r = await tg.call({ _: "phone.getGroupCallStreamRtmpUrl", peer: inputPeer, revoke: false });
+    const r = await tg.call({ _: "phone.getGroupCallStreamRtmpUrl", peer: inputPeer, revoke: opts.revoke === true });
     await this.close();
-    return { rtmpUrl: r.url, streamKey: r.key };
+    return { rtmpUrl: r.url, streamKey: r.key, mode: "mtcute" };
+  }
+  async videoChat() {
+    return { ok: false, joined: false, active: false, mode: "unavailable", friendly: "This worker can open an RTMP stream on your second account. Joining the call as a participant is not in this runtime." };
   }
 }

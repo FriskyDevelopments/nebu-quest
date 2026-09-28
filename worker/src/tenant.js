@@ -49,7 +49,7 @@ export async function setTenantTgApi(env, user, id, body) {
   await putSecret(env, id, user.id, "telegram_api", { apiId, apiHash }, { apiId: mask(apiId, 3), apiHash: mask(apiHash) });
   return { status: 200, body: { ok: true, telegramApi: { apiId: mask(apiId, 3), apiHash: mask(apiHash) } } };
 }
-const PROVIDERS = new Set(["telegram", "telegram_nebu", "spotify", "drive", "stix"]);
+const PROVIDERS = new Set(["telegram", "telegram_nebu", "spotify", "drive", "stix", "paperclip"]);
 
 async function aesKey(env) {
   if (!env.TENANT_KEY) return null;
@@ -76,6 +76,15 @@ export async function getLinks(env, owner) {
 }
 export async function setLink(env, owner, provider, data) {
   if (!PROVIDERS.has(provider)) throw new Error("bad provider");
+  if (provider === "paperclip") {
+    const seat = String((data && (data.seat || data.id)) || "").trim();
+    if (!/^FRSKY-PC-[A-Za-z0-9]{4,32}$/.test(seat)) {
+      const e = new Error("bad_seat");
+      e.friendly = "A Paperclip seat key looks like FRSKY-PC- followed by letters and numbers.";
+      throw e;
+    }
+    data = { id: seat, name: mask(seat, 4) };
+  }
   // The NEBU account is a SECOND, dedicated Telegram account. It must differ from the personal one.
   if (provider === "telegram" || provider === "telegram_nebu") {
     const other = await env.DB.prepare(`SELECT data FROM links WHERE owner = ?1 AND provider = ?2`).bind(owner, provider === "telegram" ? "telegram_nebu" : "telegram").first();
@@ -116,8 +125,9 @@ export async function yourNebu(env, user) {
 
 export async function createTenant(env, user, body) {
   const ent = await entitlements(env, user.id);
-  if (!ent.limits.personalNebu) return { status: 402, body: { error: "plan_required", plan: "nebu", friendly: "A personal NEBU is part of the Your NEBU plan." } };
-  const max = Math.min(Number(env.MAX_NEBU_PER_ID || 1), ent.limits.personalNebu);
+  const open = env.VC_NODE_OPEN === "true";
+  if (!ent.limits.personalNebu && !open) return { status: 402, body: { error: "plan_required", plan: "nebu", friendly: "A personal NEBU is part of the Your NEBU plan." } };
+  const max = Math.min(Number(env.MAX_NEBU_PER_ID || 1), open ? Math.max(1, ent.limits.personalNebu || 0) : ent.limits.personalNebu);
   const n = await env.DB.prepare(`SELECT COUNT(*) AS n FROM tenants WHERE owner = ?1`).bind(user.id).first();
   if (n.n >= max) return { status: 409, body: { error: "limit_reached", limit: max } };
   const id = "n_" + randomId(8);

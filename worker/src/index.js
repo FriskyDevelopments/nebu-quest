@@ -31,7 +31,10 @@ import { LIVE_SCHEMA, handleLive, liveConfig } from "./live.js";
 import { ttsConfig, speak } from "./tts.js";
 import { ACTIONS_SCHEMA, postJoinMessage, actionLog } from "./actions.js";
 import { STITCH_SCHEMA, STITCH_MIGRATIONS, stitchConfig, listStitch, dispatchStitch, stitchCallback } from "./stitch.js";
-import { TENANT_SCHEMA, yourNebu, createTenant, setTenantBot, checkTenantBot, deleteTenant, setLink, removeLink } from "./tenant.js";
+import { TENANT_SCHEMA, yourNebu, createTenant, setTenantBot, checkTenantBot, deleteTenant, setLink, removeLink, setTenantTgApi, dropSecret, putSecret, mask, secretsMeta } from "./tenant.js";
+import { setTenantDiscord, handleInteraction } from "./discord.js";
+import { NUMBERS_SCHEMA, numbersConfig, numberFor, buyNumber, releaseNumber, handleInbound, takeCode, provider as numbersProvider } from "./numbers.js";
+import { vcFlags, describeGoLive, describeVideoChat } from "./vc.js";
 
 const ROOM_RE = /^[a-z0-9][a-z0-9-]{3,39}$/;
 const RELAY_TYPES = new Set(["offer", "answer", "ice", "meta", "bye"]);
@@ -87,7 +90,7 @@ async function mintTurn(env) {
 let schemaOk = false;
 async function schema(env) {
   if (schemaOk || !env.DB) return;
-  await env.DB.batch([...SCHEMA, ...BILLING_SCHEMA, ...TENANT_SCHEMA, ...PLAN_SCHEMA, ...AI_SCHEMA, ...LIVE_SCHEMA, ...ACTIONS_SCHEMA, ...STITCH_SCHEMA].map((s) => env.DB.prepare(s)));
+  await env.DB.batch([...SCHEMA, ...BILLING_SCHEMA, ...TENANT_SCHEMA, ...PLAN_SCHEMA, ...AI_SCHEMA, ...LIVE_SCHEMA, ...ACTIONS_SCHEMA, ...STITCH_SCHEMA, ...NUMBERS_SCHEMA].map((s) => env.DB.prepare(s)));
   for (const m of STITCH_MIGRATIONS) { try { await env.DB.prepare(m).run(); } catch { /* column already there */ } }
   schemaOk = true;
 }
@@ -114,10 +117,10 @@ function publicConfig(env) {
     tts: ttsConfig(env),
     importAnon: env.IMPORT_ANON === "true",
     stitch: stitchConfig(env),
-    // Designed, not enabled in this PR (see docs/DESIGN-STAGE2.md).
-    stage2: { tenantUserbot: false, discord: false, videoChatJoin: false, rtmpOut: false, ownNumbers: false, assistant: false, credits: false, drive: false, spotify: false, virtualCam: false, extension: false },
-    // Stage 2 (not built): Vellum assistant trial. Disabled unless VELLUM_TRIAL_ENABLED=true.
-    paperclipLink: { enabled: false, desk: "https://clip.friskydev.com" }, // design-only: link a FR!sky Paperclip seat to FRISKY ID
+    numbers: numbersConfig(env),
+    // Wired VC node controls. videoChatJoin stays false: this worker does not join a call as a participant.
+    stage2: vcFlags(env),
+    paperclipLink: { enabled: true, desk: "https://clip.friskydev.com" },
     assistantTrial: { enabled: env.ASSISTANT_TRIAL_ENABLED === "true", providers: ["vellum", "paperclip-frisky"], days: Number(env.ASSISTANT_TRIAL_DAYS || 0) || null },
   };
 }
@@ -139,6 +142,22 @@ export default {
     if (path === "/api/stitch/callback" && req.method === "POST") {
       if (!env.DB || !env.PACKS) return json({ error: "not_configured" }, 503);
       await schema(env); const r = await stitchCallback(env, req); return json(r.body, r.status);
+    }
+    if (parts[0] === "discord" && parts[1] === "interactions" && parts[2] && req.method === "POST") {
+      if (!env.DB) return json({ error: "not_configured" }, 503);
+      await schema(env);
+      if (!/^n_[a-z0-9]{8,16}$/.test(parts[2])) return new Response("unknown app", { status: 404 });
+      return handleInteraction(env, req, parts[2], {
+        createRequest: (owner, body) => createRequest(env, { id: owner }, { brief: body.brief, scope: body.size === "set" ? "set" : "element", items: [{ type: "overlay", count: body.size === "set" ? 3 : 1 }] }),
+        sharedPacks: async (owner) => (await env.DB.prepare(`SELECT name, share FROM packs WHERE owner = ?1 AND share IS NOT NULL LIMIT 20`).bind(owner).all()).results.map((r) => ({ name: r.name, url: `${origin}/s/${r.share}` })),
+        status: async (tenantId) => { const t = await env.DB.prepare(`SELECT bot_status FROM tenants WHERE id = ?1`).bind(tenantId).first(); return { online: Boolean(t && t.bot_status === "online"), live: false }; },
+        announce: async (_tenant, owner, text) => { await env.DB.prepare(`INSERT INTO action_log (id, owner, kind, target, status, detail, at) VALUES (?1, ?2, 'announce', 'discord', 'ok', ?3, ?4)`).bind(randomId(8), owner, String(text || "").slice(0, 200), Date.now()).run(); return { ok: true }; },
+      });
+    }
+    if (parts[0] === "numbers" && parts[1] === "inbound" && parts[2] && parts[3] && req.method === "POST") {
+      if (!env.DB) return json({ error: "not_configured" }, 503);
+      await schema(env);
+      return handleInbound(env, req, parts[2], parts[3]);
     }
 
     // Rooms
@@ -260,8 +279,46 @@ export default {
       if (parts.length === 2 && req.method === "GET") return json(await yourNebu(env, user));
       if (parts.length === 2 && req.method === "POST") { const r = await createTenant(env, user, await req.json().catch(() => ({}))); return json(r.body, r.status); }
       const id = parts[2];
+      if (!id) return json({ error: "not_found" }, 404);
+      const owned = await env.DB.prepare(`SELECT id FROM tenants WHERE id = ?1 AND owner = ?2`).bind(id, user.id).first();
+      if (!owned) return json({ error: "not_found" }, 404);
       if (parts[3] === "bot" && req.method === "PUT") { if (await limited(env.WRITE_LIMIT, user.id)) return json({ error: "slow down" }, 429); const b = await req.json().catch(() => ({})); const r = await setTenantBot(env, user, id, b.token); return json(r.body, r.status); }
       if (parts[3] === "bot" && req.method === "GET") { const r = await checkTenantBot(env, user, id); return json(r.body, r.status); }
+      if (parts[3] === "telegram-api" && req.method === "PUT") {
+        if (await limited(env.WRITE_LIMIT, user.id)) return json({ error: "slow down" }, 429);
+        const r = await setTenantTgApi(env, user, id, await req.json().catch(() => ({})));
+        return json(r.body, r.status);
+      }
+      if (parts[3] === "telegram-api" && req.method === "DELETE") { await dropSecret(env, id, user.id, "telegram_api"); return json({ ok: true }); }
+      if (parts[3] === "discord" && req.method === "PUT") {
+        if (await limited(env.WRITE_LIMIT, user.id)) return json({ error: "slow down" }, 429);
+        const r = await setTenantDiscord(env, user, id, await req.json().catch(() => ({})), origin);
+        return json(r.body, r.status);
+      }
+      if (parts[3] === "discord" && req.method === "DELETE") { await dropSecret(env, id, user.id, "discord_bot"); return json({ ok: true }); }
+      if (parts[3] === "rtmp" && req.method === "GET") {
+        const meta = await secretsMeta(env, id);
+        const row = meta.tg_rtmp || null;
+        const streamKey = row && typeof row.streamKey === "string" && row.streamKey.includes("•") ? row.streamKey : null;
+        return json({ rtmp: row ? { rtmpUrl: row.rtmpUrl || null, streamKey } : null });
+      }
+      if (parts[3] === "numbers" && req.method === "GET" && !parts[4]) return json({ config: numbersConfig(env), number: await numberFor(env, id) });
+      if (parts[3] === "numbers" && parts[4] === "search" && req.method === "GET") {
+        try {
+          const found = await numbersProvider(env).search({ country: url.searchParams.get("country") || "US", type: url.searchParams.get("type") || "mobile", limit: 5 });
+          return json({ numbers: found, mock: (env.NUMBERS_MODE || "mock") === "mock" });
+        } catch (e) { return json({ error: "search_failed", friendly: "The number search didn't answer." }, e.status || 502); }
+      }
+      if (parts[3] === "numbers" && req.method === "POST" && !parts[4]) {
+        const b = await req.json().catch(() => ({}));
+        const r = await buyNumber(env, user, id, b.e164, origin);
+        return json(r.body, r.status);
+      }
+      if (parts[3] === "numbers" && req.method === "DELETE") { const r = await releaseNumber(env, user.id, id); return json(r.body, r.status); }
+      if (parts[3] === "numbers" && parts[4] === "code" && req.method === "POST") {
+        const code = await takeCode(env, id);
+        return json(code ? { code } : { code: null, friendly: "No Telegram code has arrived in the last 10 minutes." });
+      }
       if (parts[3] === "tg" && parts[4]) {
         // NEBU user account (MTProto) ops, proxied to the tenant's TgUser Durable Object. Owner-checked.
         const t = await env.DB.prepare(`SELECT id FROM tenants WHERE id = ?1 AND owner = ?2`).bind(id, user.id).first();
@@ -269,8 +326,23 @@ export default {
         if (await limited(env.AUTH_LIMIT, `tg:${user.id}`)) return json({ error: "slow down" }, 429);
         const personal = await env.DB.prepare(`SELECT tg_id FROM users WHERE id = ?1`).bind(user.id).first();
         const stub = env.TG_USERS.get(env.TG_USERS.idFromName(id));
-        const r = await stub.fetch(new Request(`https://tg/${parts[4]}`, { method: req.method, body: req.method === "POST" ? await req.text() : undefined, headers: { "X-Nebu-Tenant": JSON.stringify({ tenant: id, owner: user.id, personalTgId: personal && personal.tg_id }) } }));
-        return json(await r.json(), r.status);
+        const forwarded = new Request(`https://tg/${parts[4]}`, { method: req.method, body: req.method === "POST" ? await req.text() : undefined, headers: { "X-Nebu-Tenant": JSON.stringify({ tenant: id, owner: user.id, personalTgId: personal && personal.tg_id }) } });
+        const r = await stub.fetch(forwarded);
+        const raw = await r.json().catch(() => ({ error: "telegram_error", friendly: "The NEBU account runtime did not answer." }));
+        if (parts[4] === "go-live") {
+          const presented = describeGoLive(raw);
+          if (presented.body.reveal) {
+            try {
+              await putSecret(env, id, user.id, "tg_rtmp", { streamKey: presented.body.streamKey, rtmpUrl: presented.body.rtmpUrl }, { rtmpUrl: presented.body.rtmpUrl, streamKey: mask(presented.body.streamKey) });
+            } catch {
+              return json({ ok: false, joined: false, error: "cannot_seal", friendly: "The stream key could not be stored, so it was not shown." }, 503);
+            }
+          }
+          const { reveal, ...client } = presented.body;
+          return json(client, r.ok ? presented.status : r.status);
+        }
+        if (parts[4] === "vc") return json(describeVideoChat(raw), r.ok ? 200 : r.status);
+        return json(raw, r.status);
       }
       if (parts.length === 3 && req.method === "DELETE") {
         // Deleting a NEBU revokes its Telegram user session first.
