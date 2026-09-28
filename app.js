@@ -4,8 +4,8 @@
  *   <main id="main">
  *     ... hero ...
  *     <div class="signal-strip" aria-hidden="true"><!-- mount --></div>
- *     <section id="features" aria-label="The studio"><!-- mount --></section>
- *     <section id="steps" aria-label="Your kind of live"><!-- mount --></section>
+ *     <section id="features" aria-label="The room"><!-- mount --></section>
+ *     <section id="steps" aria-label="Who it's for"><!-- mount --></section>
  *     <section id="faq" aria-label="Good to know"><!-- mount --></section>
  *   </main>
  *   <footer><!-- mount --></footer>
