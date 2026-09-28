@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+    <style>
+        path, polygon, line, rect, circle {
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .sparkle-fast, .sparkle {
+            fill: #ffe55c !important;
+            stroke-width: 0 !important;
+        }
+    </style>
+    
+                <path d="M 60 20 A 35 35 0 1 0 60 80 A 25 25 0 1 1 60 20 Z" stroke="#d4af37" fill="none"/>
+                <circle cx="50" cy="50" r="3" fill="#d4af37" class="sparkle-fast" style="animation-delay: 1.2s;" />
+            
+</svg>

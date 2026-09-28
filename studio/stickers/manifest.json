@@ -1,0 +1,934 @@
+{
+ "version": 1,
+ "sets": [
+  {
+   "id": "arcanum",
+   "name": "Sovereign Arcanum",
+   "source": "FriskyDevelopments/stix-ui-deploy (telegram_stickers_png, telegram_stickers_webm)",
+   "telegram": "StixMagicArcanum",
+   "items": [
+    {
+     "id": "arcanum/01_aries",
+     "name": "Aries",
+     "src": "arcanum/01_aries.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/01_aries.webm"
+    },
+    {
+     "id": "arcanum/02_taurus",
+     "name": "Taurus",
+     "src": "arcanum/02_taurus.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/02_taurus.webm"
+    },
+    {
+     "id": "arcanum/03_gemini",
+     "name": "Gemini",
+     "src": "arcanum/03_gemini.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/03_gemini.webm"
+    },
+    {
+     "id": "arcanum/04_cancer",
+     "name": "Cancer",
+     "src": "arcanum/04_cancer.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/04_cancer.webm"
+    },
+    {
+     "id": "arcanum/05_leo",
+     "name": "Leo",
+     "src": "arcanum/05_leo.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/05_leo.webm"
+    },
+    {
+     "id": "arcanum/06_virgo",
+     "name": "Virgo",
+     "src": "arcanum/06_virgo.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/06_virgo.webm"
+    },
+    {
+     "id": "arcanum/07_libra",
+     "name": "Libra",
+     "src": "arcanum/07_libra.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/07_libra.webm"
+    },
+    {
+     "id": "arcanum/08_scorpio",
+     "name": "Scorpio",
+     "src": "arcanum/08_scorpio.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/08_scorpio.webm"
+    },
+    {
+     "id": "arcanum/09_sagittarius",
+     "name": "Sagittarius",
+     "src": "arcanum/09_sagittarius.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/09_sagittarius.webm"
+    },
+    {
+     "id": "arcanum/10_capricorn",
+     "name": "Capricorn",
+     "src": "arcanum/10_capricorn.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/10_capricorn.webm"
+    },
+    {
+     "id": "arcanum/11_aquarius",
+     "name": "Aquarius",
+     "src": "arcanum/11_aquarius.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/11_aquarius.webm"
+    },
+    {
+     "id": "arcanum/12_pisces",
+     "name": "Pisces",
+     "src": "arcanum/12_pisces.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/12_pisces.webm"
+    },
+    {
+     "id": "arcanum/13_fire",
+     "name": "Fire",
+     "src": "arcanum/13_fire.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/13_fire.webm"
+    },
+    {
+     "id": "arcanum/14_earth",
+     "name": "Earth",
+     "src": "arcanum/14_earth.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/14_earth.webm"
+    },
+    {
+     "id": "arcanum/15_air",
+     "name": "Air",
+     "src": "arcanum/15_air.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/15_air.webm"
+    },
+    {
+     "id": "arcanum/16_water",
+     "name": "Water",
+     "src": "arcanum/16_water.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/16_water.webm"
+    },
+    {
+     "id": "arcanum/17_sulfur",
+     "name": "Sulfur",
+     "src": "arcanum/17_sulfur.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/17_sulfur.webm"
+    },
+    {
+     "id": "arcanum/18_salt",
+     "name": "Salt",
+     "src": "arcanum/18_salt.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/18_salt.webm"
+    },
+    {
+     "id": "arcanum/19_lead",
+     "name": "Lead",
+     "src": "arcanum/19_lead.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/19_lead.webm"
+    },
+    {
+     "id": "arcanum/20_tin",
+     "name": "Tin",
+     "src": "arcanum/20_tin.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/20_tin.webm"
+    },
+    {
+     "id": "arcanum/21_iron",
+     "name": "Iron",
+     "src": "arcanum/21_iron.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/21_iron.webm"
+    },
+    {
+     "id": "arcanum/22_gold",
+     "name": "Gold",
+     "src": "arcanum/22_gold.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/22_gold.webm"
+    },
+    {
+     "id": "arcanum/23_silver",
+     "name": "Silver",
+     "src": "arcanum/23_silver.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/23_silver.webm"
+    },
+    {
+     "id": "arcanum/24_antimony",
+     "name": "Antimony",
+     "src": "arcanum/24_antimony.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/24_antimony.webm"
+    },
+    {
+     "id": "arcanum/25_arsenic",
+     "name": "Arsenic",
+     "src": "arcanum/25_arsenic.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/25_arsenic.webm"
+    },
+    {
+     "id": "arcanum/26_bismuth",
+     "name": "Bismuth",
+     "src": "arcanum/26_bismuth.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/26_bismuth.webm"
+    },
+    {
+     "id": "arcanum/27_zinc",
+     "name": "Zinc",
+     "src": "arcanum/27_zinc.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/27_zinc.webm"
+    },
+    {
+     "id": "arcanum/28_platinum",
+     "name": "Platinum",
+     "src": "arcanum/28_platinum.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/28_platinum.webm"
+    },
+    {
+     "id": "arcanum/29_sovereign_eye",
+     "name": "Sovereign Eye",
+     "src": "arcanum/29_sovereign_eye.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/29_sovereign_eye.webm"
+    },
+    {
+     "id": "arcanum/30_catalyst",
+     "name": "Catalyst",
+     "src": "arcanum/30_catalyst.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/30_catalyst.webm"
+    },
+    {
+     "id": "arcanum/31_prism",
+     "name": "Prism",
+     "src": "arcanum/31_prism.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/31_prism.webm"
+    },
+    {
+     "id": "arcanum/32_the_stix",
+     "name": "The Stix",
+     "src": "arcanum/32_the_stix.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/32_the_stix.webm"
+    },
+    {
+     "id": "arcanum/33_ascendant",
+     "name": "Ascendant",
+     "src": "arcanum/33_ascendant.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/33_ascendant.webm"
+    },
+    {
+     "id": "arcanum/34_hex",
+     "name": "Hex",
+     "src": "arcanum/34_hex.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/34_hex.webm"
+    },
+    {
+     "id": "arcanum/35_scythe",
+     "name": "Scythe",
+     "src": "arcanum/35_scythe.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/35_scythe.webm"
+    },
+    {
+     "id": "arcanum/36_ouroboros",
+     "name": "Ouroboros",
+     "src": "arcanum/36_ouroboros.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/36_ouroboros.webm"
+    },
+    {
+     "id": "arcanum/37_eclipse",
+     "name": "Eclipse",
+     "src": "arcanum/37_eclipse.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/37_eclipse.webm"
+    },
+    {
+     "id": "arcanum/38_equilibrium",
+     "name": "Equilibrium",
+     "src": "arcanum/38_equilibrium.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/38_equilibrium.webm"
+    },
+    {
+     "id": "arcanum/39_leyline",
+     "name": "Leyline",
+     "src": "arcanum/39_leyline.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/39_leyline.webm"
+    },
+    {
+     "id": "arcanum/40_astral",
+     "name": "Astral",
+     "src": "arcanum/40_astral.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/40_astral.webm"
+    },
+    {
+     "id": "arcanum/41_resonance",
+     "name": "Resonance",
+     "src": "arcanum/41_resonance.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/41_resonance.webm"
+    },
+    {
+     "id": "arcanum/42_philosopher",
+     "name": "Philosopher",
+     "src": "arcanum/42_philosopher.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/42_philosopher.webm"
+    },
+    {
+     "id": "arcanum/43_mercury",
+     "name": "Mercury",
+     "src": "arcanum/43_mercury.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/43_mercury.webm"
+    },
+    {
+     "id": "arcanum/44_crucible",
+     "name": "Crucible",
+     "src": "arcanum/44_crucible.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/44_crucible.webm"
+    },
+    {
+     "id": "arcanum/45_sol",
+     "name": "Sol",
+     "src": "arcanum/45_sol.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/45_sol.webm"
+    },
+    {
+     "id": "arcanum/46_aether",
+     "name": "Aether",
+     "src": "arcanum/46_aether.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/46_aether.webm"
+    },
+    {
+     "id": "arcanum/47_chronos",
+     "name": "Chronos",
+     "src": "arcanum/47_chronos.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/47_chronos.webm"
+    },
+    {
+     "id": "arcanum/48_luna",
+     "name": "Luna",
+     "src": "arcanum/48_luna.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/48_luna.webm"
+    },
+    {
+     "id": "arcanum/49_neptune",
+     "name": "Neptune",
+     "src": "arcanum/49_neptune.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/49_neptune.webm"
+    },
+    {
+     "id": "arcanum/50_pluto",
+     "name": "Pluto",
+     "src": "arcanum/50_pluto.webp",
+     "tags": [
+      "arcanum"
+     ],
+     "anim": "arcanum/50_pluto.webm"
+    }
+   ]
+  },
+  {
+   "id": "alchemy",
+   "name": "Alchemy Glyphs",
+   "source": "FriskyDevelopments/stix-ui-deploy (alchemy_emojis)",
+   "items": [
+    {
+     "id": "alchemy/01_aries",
+     "name": "Aries",
+     "src": "alchemy/01_aries.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/02_taurus",
+     "name": "Taurus",
+     "src": "alchemy/02_taurus.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/03_gemini",
+     "name": "Gemini",
+     "src": "alchemy/03_gemini.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/04_cancer",
+     "name": "Cancer",
+     "src": "alchemy/04_cancer.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/05_leo",
+     "name": "Leo",
+     "src": "alchemy/05_leo.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/06_virgo",
+     "name": "Virgo",
+     "src": "alchemy/06_virgo.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/07_libra",
+     "name": "Libra",
+     "src": "alchemy/07_libra.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/08_scorpio",
+     "name": "Scorpio",
+     "src": "alchemy/08_scorpio.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/09_sagittarius",
+     "name": "Sagittarius",
+     "src": "alchemy/09_sagittarius.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/10_capricorn",
+     "name": "Capricorn",
+     "src": "alchemy/10_capricorn.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/11_aquarius",
+     "name": "Aquarius",
+     "src": "alchemy/11_aquarius.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/12_pisces",
+     "name": "Pisces",
+     "src": "alchemy/12_pisces.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/13_fire",
+     "name": "Fire",
+     "src": "alchemy/13_fire.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/14_earth",
+     "name": "Earth",
+     "src": "alchemy/14_earth.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/15_air",
+     "name": "Air",
+     "src": "alchemy/15_air.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/16_water",
+     "name": "Water",
+     "src": "alchemy/16_water.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/17_sulfur",
+     "name": "Sulfur",
+     "src": "alchemy/17_sulfur.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/18_salt",
+     "name": "Salt",
+     "src": "alchemy/18_salt.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/19_lead",
+     "name": "Lead",
+     "src": "alchemy/19_lead.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/20_tin",
+     "name": "Tin",
+     "src": "alchemy/20_tin.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/21_iron",
+     "name": "Iron",
+     "src": "alchemy/21_iron.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/22_gold",
+     "name": "Gold",
+     "src": "alchemy/22_gold.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/23_silver",
+     "name": "Silver",
+     "src": "alchemy/23_silver.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/24_antimony",
+     "name": "Antimony",
+     "src": "alchemy/24_antimony.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/25_arsenic",
+     "name": "Arsenic",
+     "src": "alchemy/25_arsenic.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/26_bismuth",
+     "name": "Bismuth",
+     "src": "alchemy/26_bismuth.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/27_zinc",
+     "name": "Zinc",
+     "src": "alchemy/27_zinc.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/28_platinum",
+     "name": "Platinum",
+     "src": "alchemy/28_platinum.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/29_sovereign_eye",
+     "name": "Sovereign Eye",
+     "src": "alchemy/29_sovereign_eye.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/30_catalyst",
+     "name": "Catalyst",
+     "src": "alchemy/30_catalyst.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/31_prism",
+     "name": "Prism",
+     "src": "alchemy/31_prism.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/32_the_stix",
+     "name": "The Stix",
+     "src": "alchemy/32_the_stix.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/33_ascendant",
+     "name": "Ascendant",
+     "src": "alchemy/33_ascendant.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/34_hex",
+     "name": "Hex",
+     "src": "alchemy/34_hex.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/35_scythe",
+     "name": "Scythe",
+     "src": "alchemy/35_scythe.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/36_ouroboros",
+     "name": "Ouroboros",
+     "src": "alchemy/36_ouroboros.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/37_eclipse",
+     "name": "Eclipse",
+     "src": "alchemy/37_eclipse.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/38_equilibrium",
+     "name": "Equilibrium",
+     "src": "alchemy/38_equilibrium.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/39_leyline",
+     "name": "Leyline",
+     "src": "alchemy/39_leyline.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/40_astral",
+     "name": "Astral",
+     "src": "alchemy/40_astral.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/41_resonance",
+     "name": "Resonance",
+     "src": "alchemy/41_resonance.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/42_philosopher",
+     "name": "Philosopher",
+     "src": "alchemy/42_philosopher.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/43_mercury",
+     "name": "Mercury",
+     "src": "alchemy/43_mercury.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/44_crucible",
+     "name": "Crucible",
+     "src": "alchemy/44_crucible.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/45_sol",
+     "name": "Sol",
+     "src": "alchemy/45_sol.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/46_aether",
+     "name": "Aether",
+     "src": "alchemy/46_aether.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/47_chronos",
+     "name": "Chronos",
+     "src": "alchemy/47_chronos.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/48_luna",
+     "name": "Luna",
+     "src": "alchemy/48_luna.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/49_neptune",
+     "name": "Neptune",
+     "src": "alchemy/49_neptune.svg",
+     "tags": [
+      "glyph"
+     ]
+    },
+    {
+     "id": "alchemy/50_pluto",
+     "name": "Pluto",
+     "src": "alchemy/50_pluto.svg",
+     "tags": [
+      "glyph"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "creatures",
+   "name": "Stix Magic Creatures",
+   "source": "FriskyDevelopments/stixmagic-miniapp (public/stickers)",
+   "items": [
+    {
+     "id": "creatures/compass",
+     "name": "Compass",
+     "src": "creatures/compass.webp",
+     "tags": [
+      "creature"
+     ]
+    },
+    {
+     "id": "creatures/fox",
+     "name": "Fox",
+     "src": "creatures/fox.webp",
+     "tags": [
+      "creature"
+     ]
+    },
+    {
+     "id": "creatures/golem",
+     "name": "Golem",
+     "src": "creatures/golem.webp",
+     "tags": [
+      "creature"
+     ]
+    },
+    {
+     "id": "creatures/kraken",
+     "name": "Kraken",
+     "src": "creatures/kraken.webp",
+     "tags": [
+      "creature"
+     ]
+    },
+    {
+     "id": "creatures/lantern",
+     "name": "Lantern",
+     "src": "creatures/lantern.webp",
+     "tags": [
+      "creature"
+     ]
+    },
+    {
+     "id": "creatures/moth",
+     "name": "Moth",
+     "src": "creatures/moth.webp",
+     "tags": [
+      "creature"
+     ]
+    }
+   ]
+  }
+ ],
+ "motion": {
+  "source": "FriskyDevelopments/stixmagic-bot (packs/*/pack.json)",
+  "presets": [
+   "pulse",
+   "glitch",
+   "particle_burst",
+   "signal_flash"
+  ]
+ }
+}
