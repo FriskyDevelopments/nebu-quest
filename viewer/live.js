@@ -4,9 +4,13 @@
   const $ = (s) => document.querySelector(s);
   const WM = () => (window.NebuBrand ? NebuBrand.wordmark('is-sm') : 'NEBU');
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const PREVIEW = /(^|\.)nebu-quest\.pages\.dev$|^localhost$|^127\.0\.0\.1$/.test(location.hostname) && location.hostname !== 'nebu-quest.pages.dev';
   const qs = new URLSearchParams(location.search);
-  const SIGNAL = ((PREVIEW && qs.get('signal')) || ($(PREVIEW ? 'meta[name="nebu-signal-preview"]' : 'meta[name="nebu-signal"]') || {}).content || '').replace(/\/$/, '');
+  const meta = (name) => (($(`meta[name="${name}"]`) || {}).content || '');
+  const SIGNAL = nebuSignalBase({
+    search: location.search,
+    hostname: location.hostname,
+    metas: { prod: meta('nebu-signal'), preview: meta('nebu-signal-preview') },
+  });
   const TG = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData ? window.Telegram.WebApp : null;
   const sid = (TG && (TG.initDataUnsafe.start_param || '')) || location.pathname.split('/').filter(Boolean)[1] || qs.get('s') || '';
   let ws = null, token = null, me = null, mode = 'chat', poll = null, queue = [], myVote = null, reactions = ['🔥', '💜', '👏', '😂', '🎉', '⚡', '🐺', '✨'];

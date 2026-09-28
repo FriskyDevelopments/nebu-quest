@@ -17,9 +17,12 @@
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const W = 1280, H = 720, FPS = 30, MAX_PEOPLE = 4;
   const params = new URLSearchParams(location.search);
-  // Branch previews and local dev talk to the preview Worker; nebu.quest talks to production.
-  const PREVIEW_HOST = /(^|\.)nebu-quest\.pages\.dev$|^localhost$|^127\.0\.0\.1$/.test(location.hostname) && location.hostname !== 'nebu-quest.pages.dev';
-  const SIGNAL = window.NEBU_SIGNAL = (new URLSearchParams(location.search).get('signal') && PREVIEW_HOST ? new URLSearchParams(location.search).get('signal') : (($(PREVIEW_HOST ? 'meta[name="nebu-signal-preview"]' : 'meta[name="nebu-signal"]') || $('meta[name="nebu-signal"]') || {}).content || '')).replace(/\/$/, '');
+  const meta = (name) => (($(`meta[name="${name}"]`) || {}).content || '');
+  const SIGNAL = window.NEBU_SIGNAL = nebuSignalBase({
+    search: location.search,
+    hostname: location.hostname,
+    metas: { prod: meta('nebu-signal'), preview: meta('nebu-signal-preview') },
+  });
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const md = navigator.mediaDevices;
   const canCapture = !!(md && md.getUserMedia);

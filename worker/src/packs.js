@@ -42,6 +42,31 @@ export async function ensureUser(env, user) {
   return env.DB.prepare(`SELECT id, name, bytes, tg_id, tg_username FROM users WHERE id = ?1`).bind(user.id).first();
 }
 
+const SAFE_ID = /^[A-Za-z0-9_-]{1,80}$/;
+
+// A manifest may only mint URLs for keys this pack is allowed to read:
+// this pack's own uploads, this pack's stitch job, the public official prefix,
+// and the shared Telegram sticker cache. A copied foreign key is not signed.
+export function keyAllowed(key, pack) {
+  if (!pack || typeof key !== "string" || key.length > 300 || /[\\%\u0000]/.test(key) || key.includes("..")) return false;
+  const owner = String(pack.owner || "");
+  const id = String(pack.id || "");
+  if (!SAFE_ID.test(owner) || !SAFE_ID.test(id)) return false;
+  if (/^packs\/official\/[A-Za-z0-9_-]{1,80}\/[A-Za-z0-9._-]{1,160}$/.test(key)) return true;
+  if (/^packs\/tg-cache\/[A-Za-z][A-Za-z0-9_]{0,63}\/[A-Za-z0-9_-]{1,200}\.(webp|webm|tgs)$/.test(key)) return true;
+  if (key.startsWith(`packs/${owner}/${id}/`) && new RegExp(`^packs/${owner}/${id}/[A-Za-z0-9._-]{1,160}$`).test(key)) return true;
+  const source = String(pack.source || "");
+  if (source.startsWith("stitch:")) {
+    const job = source.slice("stitch:".length);
+    if (SAFE_ID.test(job) && new RegExp(`^packs/stitch/${owner}/${job}/\\d{1,2}\\.(png|jpe?g|webp|svg|html)$`).test(key)) return true;
+  }
+  return false;
+}
+
+export function manifestRefsAllowed(manifestText, pack) {
+  return [...String(manifestText).matchAll(/"r2:([^"]+)"/g)].every((m) => keyAllowed(m[1], pack));
+}
+
 export async function fileUrl(env, origin, key, ttl = 6 * 3600) {
   if (key.startsWith("packs/official/")) return `${origin}/f/${encodeURI(key)}`;
   const e = Math.floor(Date.now() / 1000) + ttl;
@@ -50,12 +75,13 @@ export async function fileUrl(env, origin, key, ttl = 6 * 3600) {
 }
 
 // Replace "r2:<key>" references in a manifest with signed URLs for the reader.
-export async function resolveManifest(env, origin, manifest) {
+// Keys this pack cannot read become an empty string and are not signed.
+export async function resolveManifest(env, origin, manifest, pack) {
   const txt = JSON.stringify(manifest || {});
   const keys = [...new Set([...txt.matchAll(/"r2:([^"]+)"/g)].map((m) => m[1]))];
   const map = {};
-  for (const k of keys) map[k] = await fileUrl(env, origin, k);
-  return JSON.parse(txt.replace(/"r2:([^"]+)"/g, (_, k) => JSON.stringify(map[k])));
+  for (const k of keys) map[k] = pack && keyAllowed(k, pack) ? await fileUrl(env, origin, k) : "";
+  return JSON.parse(txt.replace(/"r2:([^"]+)"/g, (_, k) => JSON.stringify(map[k] ?? "")));
 }
 
 function packRow(r, extra = {}) {
@@ -63,7 +89,7 @@ function packRow(r, extra = {}) {
 }
 
 export async function serveFile(env, req, key) {
-  if (!key.startsWith("packs/")) return new Response("not found", { status: 404 });
+  if (!key.startsWith("packs/") || key.includes("..") || /[\\%\u0000]/.test(key)) return new Response("not found", { status: 404 });
   if (!key.startsWith("packs/official/")) {
     const t = new URL(req.url).searchParams.get("t");
     const p = await verify(env.NEBU_SESSION_SECRET, t, "file");
@@ -105,8 +131,10 @@ export async function handlePacks(env, req, user, parts, origin, json) {
     const manifest = JSON.stringify(body.manifest && typeof body.manifest === "object" ? body.manifest : { version: 1, items: [] });
     if (manifest.length > LIMITS.manifestBytes) return json({ error: "manifest_too_big" }, 413);
     const id = "p_" + randomId(9);
+    const source = String(body.source || "studio").slice(0, 80);
+    if (!manifestRefsAllowed(manifest, { id, owner: user.id, source })) return json({ error: "manifest_key" }, 400);
     const now = Date.now();
-    await db.prepare(`INSERT INTO packs (id, owner, name, kind, manifest, source, created, updated) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)`).bind(id, user.id, name, kind, manifest, String(body.source || "studio").slice(0, 80), now).run();
+    await db.prepare(`INSERT INTO packs (id, owner, name, kind, manifest, source, created, updated) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7)`).bind(id, user.id, name, kind, manifest, source, now).run();
     return json({ pack: { id, name, kind } }, 201);
   }
   const id = parts[1];
@@ -116,7 +144,7 @@ export async function handlePacks(env, req, user, parts, origin, json) {
   // GET /packs/:id
   if (parts.length === 2 && method === "GET") {
     if (!mine && row.owner !== "official") return json({ error: "not_found" }, 404);
-    const manifest = await resolveManifest(env, origin, JSON.parse(row.manifest || "{}"));
+    const manifest = await resolveManifest(env, origin, JSON.parse(row.manifest || "{}"), row);
     return json({ pack: packRow(row, { mine, share: mine && row.share ? `${origin}/s/${row.share}` : null }), manifest });
   }
   if (!mine) return json({ error: "forbidden" }, 403);
@@ -125,6 +153,7 @@ export async function handlePacks(env, req, user, parts, origin, json) {
     const body = await req.json().catch(() => ({}));
     const manifest = body.manifest ? JSON.stringify(body.manifest) : row.manifest;
     if (manifest.length > LIMITS.manifestBytes) return json({ error: "manifest_too_big" }, 413);
+    if (body.manifest && !manifestRefsAllowed(manifest, row)) return json({ error: "manifest_key" }, 400);
     const name = body.name ? String(body.name).replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 60) : row.name;
     await db.prepare(`UPDATE packs SET name = ?2, manifest = ?3, updated = ?4 WHERE id = ?1`).bind(id, name, manifest, Date.now()).run();
     return json({ ok: true });
@@ -180,7 +209,7 @@ export async function handleShare(env, token, origin, json) {
   if (!/^[A-Za-z0-9_-]{8,40}$/.test(token)) return json({ error: "not_found" }, 404);
   const row = await env.DB.prepare(`SELECT * FROM packs WHERE share = ?1`).bind(token).first();
   if (!row) return json({ error: "not_found" }, 404);
-  const manifest = await resolveManifest(env, origin, JSON.parse(row.manifest || "{}"));
+  const manifest = await resolveManifest(env, origin, JSON.parse(row.manifest || "{}"), row);
   return json({ pack: packRow(row, { mine: false }), manifest });
 }
 
