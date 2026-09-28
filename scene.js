@@ -14,7 +14,7 @@
   var VIOLET = [157, 0, 255];
   var CYAN = [0, 229, 255];
   var LIME = [183, 255, 42];
-  var MAX_PARTICLES = 600;
+  var MAX_PARTICLES = 720;
   var TAU = Math.PI * 2;
   var DPR_CAP = 2;
 
@@ -71,6 +71,7 @@
   var scrollRot = 0;
   var scrollEase = 0;
   var scrollTarget = 0;
+  var bursts = [];
 
   function makeSprite(c) {
     var s = 64;
@@ -163,13 +164,60 @@
     var breathe = 1 + 0.03 * Math.sin(time * 0.3 + p.ph);
     var R = p.r * S * breathe;
     var ang = p.a + time * p.sp + dragRot + scrollRot;
-    var x = cx + Math.cos(ang) * R + parX * 34 * p.dep;
-    var y = cy + Math.sin(ang) * R * 0.86 + parY * 34 * p.dep - scrollEase * 70 * p.dep;
+    var x = cx + Math.cos(ang) * R + parX * 48 * p.dep;
+    var y = cy + Math.sin(ang) * R * 0.86 + parY * 48 * p.dep - scrollEase * 90 * p.dep;
+    var gx = cx + parX * W * 0.32;
+    var gy = cy + parY * H * 0.28;
+    var dx = gx - x;
+    var dy = gy - y;
+    var dist = Math.sqrt(dx * dx + dy * dy) + 18;
+    var pull = clamp(140 / dist, 0, 22) * p.dep;
+    x += (dx / dist) * pull * 18;
+    y += (dy / dist) * pull * 18;
     var tw = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(time * p.tw + p.ph));
     var d = p.sz * (0.5 + p.dep) * clamp(S / 700, 0.6, 1.15);
     var key = p.c === VIOLET ? 'v' : p.c === CYAN ? 'c' : 'l';
     ctx.globalAlpha = tw * (0.35 + 0.65 * p.dep);
     ctx.drawImage(sprites[key], x - d * 2, y - d * 2, d * 4, d * 4);
+  }
+
+  function spawnBurst(px, py) {
+    var n = 22;
+    for (var i = 0; i < n; i++) {
+      var a = (TAU * i) / n + Math.random() * 0.4;
+      var sp = 90 + Math.random() * 220;
+      bursts.push({
+        x: px,
+        y: py,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp,
+        life: 1,
+        c: pickColor(Math.random()),
+        sz: 2 + Math.random() * 3.2
+      });
+    }
+  }
+
+  function drawBursts(dt) {
+    if (!bursts.length) return;
+    ctx.globalCompositeOperation = 'lighter';
+    for (var i = bursts.length - 1; i >= 0; i--) {
+      var b = bursts[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.vx *= 0.96;
+      b.vy *= 0.96;
+      b.life -= dt * 1.35;
+      if (b.life <= 0) {
+        bursts.splice(i, 1);
+        continue;
+      }
+      var key = b.c === VIOLET ? 'v' : b.c === CYAN ? 'c' : 'l';
+      var d = b.sz * (0.6 + b.life);
+      ctx.globalAlpha = b.life;
+      ctx.drawImage(sprites[key], b.x - d * 2, b.y - d * 2, d * 4, d * 4);
+    }
+    ctx.globalAlpha = 1;
   }
 
   function drawBlobs(time) {
@@ -221,33 +269,49 @@
   }
 
   function drawDisc(time) {
-    var x = cx + parX * 12;
-    var y = cy + parY * 12;
+    var zoom = 1 + scrollEase * 0.22;
+    var x = cx + parX * 18;
+    var y = cy + parY * 16;
     var float = Math.sin(time * (TAU / 7)) * 4;
     y += float;
+    var R = discR * zoom;
 
-    var halo = ctx.createRadialGradient(x, y, discR * 0.4, x, y, discR * 3.1);
-    halo.addColorStop(0, rgba(VIOLET, 0.5));
-    halo.addColorStop(0.55, rgba(VIOLET, 0.16));
+    var halo = ctx.createRadialGradient(x, y, R * 0.35, x, y, R * 3.4);
+    halo.addColorStop(0, rgba(VIOLET, 0.62));
+    halo.addColorStop(0.45, rgba(CYAN, 0.14));
+    halo.addColorStop(0.7, rgba(VIOLET, 0.1));
     halo.addColorStop(1, rgba(VIOLET, 0));
     ctx.globalAlpha = 1;
     ctx.fillStyle = halo;
-    ctx.fillRect(x - discR * 3.1, y - discR * 3.1, discR * 6.2, discR * 6.2);
+    ctx.fillRect(x - R * 3.4, y - R * 3.4, R * 6.8, R * 6.8);
 
-    var body = ctx.createRadialGradient(x - discR * 0.3, y - discR * 0.35, discR * 0.1, x, y, discR);
-    body.addColorStop(0, '#D9FBFF');
-    body.addColorStop(0.45, '#4DEFFF');
-    body.addColorStop(1, '#008FA3');
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = 'rgba(255, 40, 120, 0.7)';
+    ctx.beginPath();
+    ctx.arc(x + parX * 8, y, R, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0, 229, 255, 0.7)';
+    ctx.beginPath();
+    ctx.arc(x - parX * 8, y, R, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+
+    var body = ctx.createRadialGradient(x - R * 0.3, y - R * 0.35, R * 0.1, x, y, R);
+    body.addColorStop(0, '#F4FFFF');
+    body.addColorStop(0.38, '#5FF6FF');
+    body.addColorStop(1, '#007A8C');
     ctx.fillStyle = body;
     ctx.beginPath();
-    ctx.arc(x, y, discR, 0, TAU);
+    ctx.arc(x, y, R, 0, TAU);
     ctx.fill();
 
     ctx.globalAlpha = 0.85;
     ctx.strokeStyle = PAPER;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(x, y, discR + 7, time * 0.25, time * 0.25 + TAU * 0.72);
+    ctx.arc(x, y, R + 7, time * 0.25, time * 0.25 + TAU * 0.72);
     ctx.stroke();
     ctx.globalAlpha = 0.4;
     ctx.strokeStyle = rgba(LIME, 0.9);
@@ -255,16 +319,16 @@
     ctx.setLineDash([4, 9]);
     ctx.lineDashOffset = -time * 14;
     ctx.beginPath();
-    ctx.arc(x, y, discR * 0.62, 0, TAU);
+    ctx.arc(x, y, R * 0.62, 0, TAU);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.globalAlpha = 1;
 
     var bars = clamp(Math.round(W / 26), 15, 33);
-    var bw = Math.min(5, (discR * 1.5) / bars);
+    var bw = Math.min(5, (R * 1.5) / bars);
     var gap = bw * 0.9;
     var total = bars * (bw + gap) - gap;
-    var by = Math.min(y + discR + 36, H - 24);
+    var by = Math.min(y + R + 36, H - 24);
     var palette = [LIME, CYAN, VIOLET];
     for (var i = 0; i < bars; i++) {
       var env = Math.pow(Math.sin((Math.PI * i) / (bars - 1)), 0.7);
@@ -344,6 +408,7 @@
       if (Math.abs(boost) < 0.0005) boost = 0;
     }
     draw(t);
+    if (bursts.length) drawBursts(dt);
   }
 
   function evaluateAuto() {
@@ -374,18 +439,15 @@
   }
 
   function bindPointer() {
-    canvas.addEventListener('pointerdown', function (e) {
-      dragging = true;
-      lastPX = e.clientX;
-      boost = 0;
-      try {
-        canvas.setPointerCapture(e.pointerId);
-      } catch (err) { /* noop */ }
-    });
-    canvas.addEventListener('pointermove', function (e) {
-      var rect = canvas.getBoundingClientRect();
+    var aim = function (e) {
+      if (!host) return;
+      var rect = host.getBoundingClientRect();
+      if (rect.width < 2 || rect.height < 2) return;
       parTX = clamp(((e.clientX - rect.left) / rect.width - 0.5) * 2, -1, 1);
       parTY = clamp(((e.clientY - rect.top) / rect.height - 0.5) * 2, -1, 1);
+    };
+    window.addEventListener('pointermove', function (e) {
+      aim(e);
       if (dragging) {
         var dx = e.clientX - lastPX;
         lastPX = e.clientX;
@@ -393,18 +455,24 @@
         boost = boost * 0.75 + (dx * 0.004) * 0.25 * 60;
         boost = clamp(boost, -6, 6);
       }
+    }, { passive: true });
+    canvas.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      lastPX = e.clientX;
+      boost = 0;
+      if (!reduceMotion) {
+        var rect = canvas.getBoundingClientRect();
+        spawnBurst(e.clientX - rect.left, e.clientY - rect.top);
+      }
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch (err) { /* noop */ }
     });
     var end = function () {
       dragging = false;
     };
     canvas.addEventListener('pointerup', end);
     canvas.addEventListener('pointercancel', end);
-    canvas.addEventListener('pointerleave', function () {
-      if (!dragging) {
-        parTX = 0;
-        parTY = 0;
-      }
-    });
     window.addEventListener('scroll', onScroll, { passive: true });
   }
 
