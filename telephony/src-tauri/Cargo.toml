@@ -1,0 +1,15 @@
+[package]
+name = "nebu-telephony-desktop"
+version = "0.1.0"
+edition = "2021"
+description = "NEBU desktop shell for LiveKit telephony."
+license = "MIT"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+nebu-telephony = { path = "../crates/nebu-telephony", features = ["rtc"] }
+serde = { version = "1", features = ["derive"] }
+tauri = { version = "2", features = [] }
