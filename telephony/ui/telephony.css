@@ -91,6 +91,12 @@ button:disabled { opacity: 0.45; cursor: default; }
   color: var(--night);
 }
 
+.prompt {
+  min-height: 3.2rem;
+  margin: 0 0 0.8rem;
+  font-size: 1.15rem;
+}
+
 .error { color: #8c1d18; }
 
 #feeds { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }

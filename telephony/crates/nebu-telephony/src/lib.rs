@@ -2,8 +2,10 @@
 //!
 //! One connection engine serves both desks. Each venue has its own URL, API
 //! key, and secret. Room JWTs are signed in this process and stay off the
-//! control page. A phone or a guest redeems a one-time code from the pair
-//! server; that device is the one that joins LiveKit.
+//! control page. A phone, a studio guest, or a property camera redeems a
+//! one-time code from the pair server; that device is the one that joins
+//! LiveKit. The Casa Barra concierge script is a prompt the desk reads. This
+//! process does not play speech.
 //!
 //! Casa Barra reads `CASA_BARRA_LIVEKIT_URL`, `CASA_BARRA_LIVEKIT_API_KEY`,
 //! and `CASA_BARRA_LIVEKIT_API_SECRET`. NEBU reads `NEBU_LIVEKIT_*`, or the
@@ -22,7 +24,8 @@ pub use config::LiveKitConfig;
 pub use pair::{InviteTicket, PairServer};
 pub use plane::{InputSource, MediaKind, PlaneEvent};
 pub use session::{
-    ConnectionState, PublicStatus, RemoteFeed, SessionError, TelephonyNode, LATENCY_BUDGET,
+    ConciergeStep, ConnectionState, InviteKind, PublicStatus, RemoteFeed, SessionError,
+    TelephonyNode, LATENCY_BUDGET,
 };
 pub use token::{ParticipantRole, TokenError};
 pub use venue::{Venue, VenueBook, VenueError};

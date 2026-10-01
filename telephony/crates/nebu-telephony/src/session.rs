@@ -71,6 +71,36 @@ pub struct PublicStatus {
     pub reservation_book: bool,
     /// No OBS socket is opened from this process.
     pub obs_linked: bool,
+    pub concierge_step: ConciergeStep,
+    /// Prompt the desk reads aloud. Empty while the script is idle.
+    pub concierge_prompt: Option<String>,
+    /// This process does not synthesize or play speech.
+    pub voice_playback: bool,
+}
+
+/// Casa Barra desk script. The operator reads `concierge_prompt`; nothing is spoken by the process.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ConciergeStep {
+    Idle,
+    Greeting,
+    Stay,
+    Property,
+    Operator,
+}
+
+/// Who an invite code is for. The wrong venue rejects the kind.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum InviteKind {
+    /// NEBU publish-only remote camera.
+    Camera,
+    /// NEBU bidirectional studio guest.
+    StudioGuest,
+    /// Casa Barra bidirectional guest.
+    Guest,
+    /// Casa Barra publish-only property camera.
+    Property,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -110,6 +140,7 @@ struct StatusInner {
     audio_latency_ms: Option<u64>,
     video_latency_ms: Option<u64>,
     reservation_ref: Option<String>,
+    concierge_step: ConciergeStep,
 }
 
 impl StatusInner {
@@ -135,6 +166,7 @@ impl StatusInner {
             audio_latency_ms: None,
             video_latency_ms: None,
             reservation_ref: None,
+            concierge_step: ConciergeStep::Idle,
         }
     }
 }
@@ -278,6 +310,12 @@ impl TelephonyNode {
             reservation_ref: status.reservation_ref.clone(),
             reservation_book: false,
             obs_linked: false,
+            concierge_step: status.concierge_step,
+            concierge_prompt: concierge_prompt(
+                status.concierge_step,
+                status.reservation_ref.as_deref(),
+            ),
+            voice_playback: false,
         }
     }
 
@@ -426,13 +464,31 @@ impl TelephonyNode {
         Ok(())
     }
 
-    /// One-time camera code. The returned ticket has no JWT.
+    /// One-time code for the venue default: a NEBU camera, or a Casa Barra guest.
+    /// The returned ticket has no JWT.
     pub async fn invite_external(
         &self,
         room: &str,
         device_label: &str,
     ) -> Result<InviteTicket, SessionError> {
+        let kind = match self.active_venue() {
+            Venue::Nebu => InviteKind::Camera,
+            Venue::CasaBarra => InviteKind::Guest,
+        };
+        self.invite_as(room, device_label, kind).await
+    }
+
+    /// One-time code for a specific invite kind. A kind from the other venue is rejected.
+    pub async fn invite_as(
+        &self,
+        room: &str,
+        device_label: &str,
+        kind: InviteKind,
+    ) -> Result<InviteTicket, SessionError> {
         let venue = self.active_venue();
+        if invite_venue(kind) != venue {
+            return Err(SessionError::WrongVenue);
+        }
         let config = self.active_config().ok_or(SessionError::NotConfigured)?;
         let room = qualify_room(venue, room).map_err(|_| SessionError::WrongVenue)?;
         self.reject_if_secret(&room)?;
@@ -440,18 +496,7 @@ impl TelephonyNode {
         self.reject_if_secret(&name)?;
         for _ in 0..5 {
             let code = self.inner.broker.mint_code();
-            let role = match venue {
-                Venue::Nebu => ParticipantRole::ExternalCamera {
-                    identity: format!("cam-{code}"),
-                    name: name.clone(),
-                    room: room.clone(),
-                },
-                Venue::CasaBarra => ParticipantRole::Guest {
-                    identity: format!("guest-{code}"),
-                    name: name.clone(),
-                    room: room.clone(),
-                },
-            };
+            let role = invite_role(kind, &code, &name, &room);
             let jwt = token::issue(&config, &role)?;
             self.note_secret(&jwt);
             if let Some(ticket) =
@@ -463,6 +508,35 @@ impl TelephonyNode {
             }
         }
         Err(SessionError::Call("could not store invite".into()))
+    }
+
+    /// Begin the Casa Barra script at the greeting. Nothing is played back.
+    pub async fn start_concierge(&self) -> Result<(), SessionError> {
+        let _gate = self.inner.gate.lock().await;
+        if self.active_venue() != Venue::CasaBarra {
+            return Err(SessionError::WrongVenue);
+        }
+        self.inner.status.lock().expect("status").concierge_step = ConciergeStep::Greeting;
+        Ok(())
+    }
+
+    /// Move the Casa Barra script to the next prompt. Idle rejects the call.
+    pub async fn advance_concierge(&self) -> Result<(), SessionError> {
+        let _gate = self.inner.gate.lock().await;
+        if self.active_venue() != Venue::CasaBarra {
+            return Err(SessionError::WrongVenue);
+        }
+        let mut status = self.inner.status.lock().expect("status");
+        status.concierge_step = match status.concierge_step {
+            ConciergeStep::Idle => {
+                return Err(SessionError::Call("concierge has not started".into()));
+            }
+            ConciergeStep::Greeting => ConciergeStep::Stay,
+            ConciergeStep::Stay => ConciergeStep::Property,
+            ConciergeStep::Property => ConciergeStep::Operator,
+            ConciergeStep::Operator => ConciergeStep::Operator,
+        };
+        Ok(())
     }
 
     pub async fn start_pair_server(&self) -> Result<u16, SessionError> {
@@ -504,9 +578,13 @@ impl TelephonyNode {
         let (identity, room) = match &role {
             ParticipantRole::Streamer { identity, room, .. }
             | ParticipantRole::ExternalCamera { identity, room, .. }
+            | ParticipantRole::StudioGuest { identity, room, .. }
             | ParticipantRole::HeadlessSubscriber { identity, room }
             | ParticipantRole::Concierge { identity, room, .. }
-            | ParticipantRole::Guest { identity, room, .. } => (identity.clone(), room.clone()),
+            | ParticipantRole::Guest { identity, room, .. }
+            | ParticipantRole::PropertyCamera { identity, room, .. } => {
+                (identity.clone(), room.clone())
+            }
         };
         self.reject_if_secret(&identity)?;
         self.reject_if_secret(&room)?;
@@ -764,14 +842,18 @@ fn clear_session(status: &mut StatusInner) {
     status.role = None;
     status.audio_latency_ms = None;
     status.video_latency_ms = None;
+    status.concierge_step = ConciergeStep::Idle;
 }
 
 fn role_venue(role: &ParticipantRole) -> Venue {
     match role {
         ParticipantRole::Streamer { .. }
         | ParticipantRole::ExternalCamera { .. }
+        | ParticipantRole::StudioGuest { .. }
         | ParticipantRole::HeadlessSubscriber { .. } => Venue::Nebu,
-        ParticipantRole::Concierge { .. } | ParticipantRole::Guest { .. } => Venue::CasaBarra,
+        ParticipantRole::Concierge { .. }
+        | ParticipantRole::Guest { .. }
+        | ParticipantRole::PropertyCamera { .. } => Venue::CasaBarra,
     }
 }
 
@@ -779,10 +861,70 @@ fn role_label(role: &ParticipantRole) -> &'static str {
     match role {
         ParticipantRole::Streamer { .. } => "streamer",
         ParticipantRole::ExternalCamera { .. } => "camera",
+        ParticipantRole::StudioGuest { .. } => "studio-guest",
         ParticipantRole::HeadlessSubscriber { .. } => "headless",
         ParticipantRole::Concierge { .. } => "concierge",
         ParticipantRole::Guest { .. } => "guest",
+        ParticipantRole::PropertyCamera { .. } => "property-camera",
     }
+}
+
+fn invite_venue(kind: InviteKind) -> Venue {
+    match kind {
+        InviteKind::Camera | InviteKind::StudioGuest => Venue::Nebu,
+        InviteKind::Guest | InviteKind::Property => Venue::CasaBarra,
+    }
+}
+
+fn invite_role(kind: InviteKind, code: &str, name: &str, room: &str) -> ParticipantRole {
+    match kind {
+        InviteKind::Camera => ParticipantRole::ExternalCamera {
+            identity: format!("cam-{code}"),
+            name: name.to_owned(),
+            room: room.to_owned(),
+        },
+        InviteKind::StudioGuest => ParticipantRole::StudioGuest {
+            identity: format!("inv-{code}"),
+            name: name.to_owned(),
+            room: room.to_owned(),
+        },
+        InviteKind::Guest => ParticipantRole::Guest {
+            identity: format!("guest-{code}"),
+            name: name.to_owned(),
+            room: room.to_owned(),
+        },
+        InviteKind::Property => ParticipantRole::PropertyCamera {
+            identity: format!("prop-{code}"),
+            name: name.to_owned(),
+            room: room.to_owned(),
+        },
+    }
+}
+
+fn concierge_prompt(step: ConciergeStep, reservation_ref: Option<&str>) -> Option<String> {
+    let prompt = match step {
+        ConciergeStep::Idle => return None,
+        ConciergeStep::Greeting => {
+            "Welcome to Casa Barra. I am Mariana at the desk. How can I help with your stay?"
+                .to_owned()
+        }
+        ConciergeStep::Stay => match reservation_ref.map(str::trim).filter(|value| !value.is_empty())
+        {
+            Some(reference) => format!(
+                "Desk note {reference} is on this call. No reservation book is connected, so this note was not looked up."
+            ),
+            None => "There is no reservation reference yet. Ask for the stay reference and save it on this desk.".to_owned(),
+        },
+        ConciergeStep::Property => {
+            "Property video plays when a property camera has joined this room. No feed is playing from this desk."
+                .to_owned()
+        }
+        ConciergeStep::Operator => {
+            "I can stay on this call. Tell me what you need and I will handle it from the desk."
+                .to_owned()
+        }
+    };
+    Some(prompt)
 }
 
 fn clean_label(label: &str) -> Result<String, SessionError> {
@@ -818,6 +960,12 @@ mod tests {
     use async_trait::async_trait;
     use livekit_api::access_token::TokenVerifier;
     use tokio::sync::mpsc::unbounded_channel;
+
+    fn verify_nebu(jwt: &str) -> livekit_api::access_token::Claims {
+        TokenVerifier::with_api_key("APItestkey9f3a", "lk-test-secret-9f3a")
+            .verify(jwt)
+            .unwrap()
+    }
 
     fn config() -> LiveKitConfig {
         LiveKitConfig::new(
@@ -1350,6 +1498,171 @@ mod tests {
         assert!(node.status().reservation_ref.is_none());
         let err = node.set_reservation_ref("HB-1").await.unwrap_err();
         assert!(matches!(err, SessionError::WrongVenue));
+    }
+
+    #[tokio::test]
+    async fn invite_as_splits_studio_guest_and_property_camera() {
+        let casa = LiveKitConfig::new(
+            "wss://casa.example",
+            "casa-api-key-9f3a",
+            "casa-secret-9f3a-isolated",
+        )
+        .unwrap();
+        let node = TelephonyNode::from_book(VenueBook::new(Some(casa), Some(config())).unwrap());
+
+        let camera = node
+            .invite_as("studio", "iPhone", InviteKind::Camera)
+            .await
+            .unwrap();
+        let camera_claims = verify_nebu(&node.inner.broker.peek_token(&camera.code).unwrap());
+        assert!(camera_claims.sub.starts_with("cam-"));
+        assert_eq!(camera_claims.video.can_subscribe, Some(false));
+        assert_eq!(
+            camera_claims.video.can_publish_sources,
+            vec!["camera".to_string(), "microphone".to_string()]
+        );
+
+        let guest = node
+            .invite_as("studio", "Alex", InviteKind::StudioGuest)
+            .await
+            .unwrap();
+        let guest_claims = verify_nebu(&node.inner.broker.peek_token(&guest.code).unwrap());
+        assert!(guest_claims.sub.starts_with("inv-"));
+        assert_eq!(guest_claims.video.room, "nebu/studio");
+        assert!(!guest_claims.video.room_admin);
+        assert_eq!(guest_claims.video.can_subscribe, Some(true));
+        assert_eq!(guest_claims.video.can_publish_data, Some(false));
+        assert_eq!(
+            guest_claims.video.can_publish_sources,
+            vec!["camera".to_string(), "microphone".to_string()]
+        );
+        assert!(
+            TokenVerifier::with_api_key("casa-api-key-9f3a", "casa-secret-9f3a-isolated")
+                .verify(&node.inner.broker.peek_token(&guest.code).unwrap())
+                .is_err()
+        );
+
+        let err = node
+            .invite_as("studio", "Pool", InviteKind::Property)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, SessionError::WrongVenue));
+        let err = node
+            .invite_as("casa/villa", "Alex", InviteKind::StudioGuest)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, SessionError::WrongVenue));
+
+        node.set_venue(Venue::CasaBarra).await.unwrap();
+        let err = node
+            .invite_as("villa", "Alex", InviteKind::StudioGuest)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, SessionError::WrongVenue));
+        let err = node
+            .invite_as("nebu/studio", "Pool", InviteKind::Property)
+            .await
+            .unwrap_err();
+        assert!(matches!(err, SessionError::WrongVenue));
+
+        let property = node
+            .invite_as("villa", "Pool", InviteKind::Property)
+            .await
+            .unwrap();
+        let property_jwt = node.inner.broker.peek_token(&property.code).unwrap();
+        let property_claims =
+            TokenVerifier::with_api_key("casa-api-key-9f3a", "casa-secret-9f3a-isolated")
+                .verify(&property_jwt)
+                .unwrap();
+        assert!(property_claims.sub.starts_with("prop-"));
+        assert_eq!(property_claims.video.room, "casa/villa");
+        assert!(!property_claims.video.room_admin);
+        assert_eq!(property_claims.video.can_subscribe, Some(false));
+        assert_eq!(property_claims.video.can_publish_data, Some(false));
+        assert_eq!(
+            property_claims.video.can_publish_sources,
+            vec!["camera".to_string()]
+        );
+        assert!(
+            TokenVerifier::with_api_key("APItestkey9f3a", "lk-test-secret-9f3a")
+                .verify(&property_jwt)
+                .is_err()
+        );
+        let json = serde_json::to_string(&node.status()).unwrap();
+        assert!(!json.contains(&property_jwt));
+        assert!(!json.contains("casa-secret"));
+        assert!(!json.contains("lk-test-secret"));
+    }
+
+    #[tokio::test]
+    async fn concierge_script_is_read_by_the_desk() {
+        let casa = LiveKitConfig::new(
+            "wss://casa.example",
+            "casa-api-key-9f3a",
+            "casa-secret-9f3a-isolated",
+        )
+        .unwrap();
+        let node = TelephonyNode::from_book(VenueBook::new(Some(casa), Some(config())).unwrap());
+
+        let err = node.start_concierge().await.unwrap_err();
+        assert!(matches!(err, SessionError::WrongVenue));
+        let err = node.advance_concierge().await.unwrap_err();
+        assert!(matches!(err, SessionError::WrongVenue));
+
+        node.set_venue(Venue::CasaBarra).await.unwrap();
+        let idle = node.status();
+        assert_eq!(idle.concierge_step, ConciergeStep::Idle);
+        assert!(idle.concierge_prompt.is_none());
+        assert!(!idle.voice_playback);
+        let err = node.advance_concierge().await.unwrap_err();
+        assert!(matches!(err, SessionError::Call(_)));
+
+        node.start_concierge().await.unwrap();
+        let greeting = node.status();
+        assert_eq!(greeting.concierge_step, ConciergeStep::Greeting);
+        let greeting_prompt = greeting.concierge_prompt.unwrap();
+        assert!(greeting_prompt.contains("Mariana"));
+        assert!(!greeting_prompt.contains("casa-secret"));
+        assert!(!greeting_prompt.contains("lk-test-secret"));
+        assert!(!node.status().voice_playback);
+
+        node.advance_concierge().await.unwrap();
+        let stay = node.status().concierge_prompt.unwrap();
+        assert!(stay.contains("no reservation reference"));
+        node.set_reservation_ref("HB-1042").await.unwrap();
+        let noted = node.status();
+        assert_eq!(noted.concierge_step, ConciergeStep::Stay);
+        let noted_prompt = noted.concierge_prompt.unwrap();
+        assert!(noted_prompt.contains("HB-1042"));
+        assert!(noted_prompt.contains("No reservation book is connected"));
+        assert!(!noted.voice_playback);
+        assert!(!noted.reservation_book);
+
+        node.advance_concierge().await.unwrap();
+        let property = node.status().concierge_prompt.unwrap();
+        assert!(property.contains("property camera"));
+        assert!(property.contains("No feed is playing"));
+
+        node.advance_concierge().await.unwrap();
+        assert_eq!(node.status().concierge_step, ConciergeStep::Operator);
+        node.advance_concierge().await.unwrap();
+        assert_eq!(node.status().concierge_step, ConciergeStep::Operator);
+
+        let json = serde_json::to_string(&node.status()).unwrap();
+        assert!(json.contains("\"voicePlayback\":false"));
+        assert!(!json.contains("casa-secret"));
+        assert!(!json.contains("lk-test-secret"));
+        assert!(!json.contains("eyJ"));
+
+        node.disconnect().await.unwrap();
+        assert_eq!(node.status().concierge_step, ConciergeStep::Idle);
+        assert!(node.status().concierge_prompt.is_none());
+
+        node.start_concierge().await.unwrap();
+        node.set_venue(Venue::Nebu).await.unwrap();
+        assert_eq!(node.status().concierge_step, ConciergeStep::Idle);
+        assert!(node.status().concierge_prompt.is_none());
+        assert!(!node.status().voice_playback);
     }
 
     #[test]

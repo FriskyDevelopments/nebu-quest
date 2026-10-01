@@ -35,6 +35,35 @@ function latencyLabel(status) {
   return detail + budget;
 }
 
+function fillInviteKinds(casa) {
+  const select = document.querySelector("#invite-kind");
+  const options = casa
+    ? [["guest", "Guest"], ["property", "Property camera"]]
+    : [["camera", "Camera"], ["studio-guest", "Studio guest"]];
+  const previous = select.value;
+  select.replaceChildren();
+  for (const [value, label] of options) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    select.append(option);
+  }
+  if ([...select.options].some((option) => option.value === previous)) {
+    select.value = previous;
+  }
+  labelInvite(select.value);
+}
+
+function labelInvite(kind) {
+  const heading = {
+    camera: "External camera",
+    "studio-guest": "Studio guest",
+    guest: "Guest",
+    property: "Property camera",
+  }[kind] || "Invite";
+  document.querySelector("#invite-heading").textContent = heading;
+}
+
 function applyVenue(next) {
   const normalized = next === "casa-barra" ? "casa-barra" : "nebu";
   const changed = normalized !== venue;
@@ -52,13 +81,11 @@ function applyVenue(next) {
   document.querySelector("#controls-heading").textContent = casa ? "Desk" : "Broadcast";
   document.querySelector("#room-label").textContent = casa ? "Property" : "Room";
   document.querySelector("#connect").textContent = casa ? "Start concierge call" : "Go live";
-  document.querySelector("#invite-heading").textContent = casa ? "Guest" : "External camera";
-  document.querySelector("#label-caption").textContent = casa ? "Guest" : "Device";
-  document.querySelector("#invite-button").textContent = casa ? "Create guest code" : "Create invite code";
   document.querySelector("#feeds-heading").textContent = casa ? "Call media" : "Feeds";
   document.querySelector("#label-input").value = casa ? "Guest" : "iPhone";
   document.querySelector("#room-input").value = casa ? "villa" : "studio";
   document.querySelector("#identity-input").value = casa ? "desk" : "host";
+  fillInviteKinds(casa);
 }
 
 function render(status) {
@@ -77,6 +104,12 @@ function render(status) {
   latencyOut.textContent = latencyLabel(status);
   pairOut.textContent = status.pairBind ? `${status.pairBind} /v1/pair` : "not listening";
   document.querySelector("#obs").textContent = status.obsLinked ? "linked" : "not connected";
+  document.querySelector("#concierge-step").textContent = status.conciergeStep || "idle";
+  document.querySelector("#concierge-prompt").textContent = status.conciergePrompt
+    || "The script has not started.";
+  document.querySelector("#voice-note").textContent = status.voicePlayback
+    ? "Voice playback is running."
+    : "Voice playback is not running. Read the prompt aloud at the desk.";
   reservationShown.textContent = status.reservationRef
     ? `Desk reference ${status.reservationRef}`
     : "No reservation book is connected.";
@@ -174,14 +207,37 @@ function bindSession() {
     }
   });
 
+  document.querySelector("#invite-kind").addEventListener("change", (event) => {
+    labelInvite(event.target.value);
+  });
+
   document.querySelector("#invite").addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
-      const ticket = await invoke("telephony_invite", {
+      const ticket = await invoke("telephony_invite_as", {
         room: document.querySelector("#room-input").value,
         label: document.querySelector("#label-input").value,
+        kind: document.querySelector("#invite-kind").value,
       });
       document.querySelector("#code").textContent = ticket.code;
+      showError("");
+    } catch (error) {
+      showError(error);
+    }
+  });
+
+  document.querySelector("#concierge-start").addEventListener("click", async () => {
+    try {
+      render(await invoke("telephony_concierge_start"));
+      showError("");
+    } catch (error) {
+      showError(error);
+    }
+  });
+
+  document.querySelector("#concierge-next").addEventListener("click", async () => {
+    try {
+      render(await invoke("telephony_concierge_advance"));
       showError("");
     } catch (error) {
       showError(error);

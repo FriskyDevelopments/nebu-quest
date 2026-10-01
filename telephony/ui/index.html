@@ -71,11 +71,27 @@
       </form>
       <p id="reservation-shown"></p>
     </section>
+    <section class="card casa-only" aria-labelledby="concierge-heading">
+      <h2 id="concierge-heading">Concierge script</h2>
+      <p class="hint" id="voice-note">Voice playback is not running. Read the prompt aloud at the desk.</p>
+      <p id="concierge-step">idle</p>
+      <p id="concierge-prompt" class="prompt">The script has not started.</p>
+      <div class="row">
+        <button type="button" id="concierge-start">Start script</button>
+        <button type="button" id="concierge-next">Next</button>
+      </div>
+    </section>
     <section class="card" aria-labelledby="invite-heading">
       <h2 id="invite-heading">External camera</h2>
       <p class="hint" id="invite-hint">A phone on the same network cannot open 127.0.0.1 of this computer. Set <code>NEBU_PAIR_BIND</code> to this machine’s LAN address before launch, then open the pair page from that device.</p>
       <form id="invite">
-        <label><span id="label-caption">Device</span> <input id="label-input" name="label" value="iPhone" autocomplete="off"></label>
+        <label>Kind
+          <select id="invite-kind">
+            <option value="camera">Camera</option>
+            <option value="studio-guest">Studio guest</option>
+          </select>
+        </label>
+        <label><span id="label-caption">Name</span> <input id="label-input" name="label" value="iPhone" autocomplete="off"></label>
         <button type="submit" id="invite-button">Create invite code</button>
       </form>
       <p id="code" class="code" aria-live="polite"></p>

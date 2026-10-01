@@ -39,6 +39,19 @@ pub enum ParticipantRole {
         name: String,
         room: String,
     },
+    /// NEBU studio guest (invitado). Bidirectional camera and microphone.
+    /// Distinct from a publish-only remote camera.
+    StudioGuest {
+        identity: String,
+        name: String,
+        room: String,
+    },
+    /// Casa Barra property camera. Video only, into one guest room.
+    PropertyCamera {
+        identity: String,
+        name: String,
+        room: String,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -206,6 +219,56 @@ fn grants_for(
                     can_subscribe: Some(true),
                     can_publish_data: Some(false),
                     can_publish_sources: vec!["camera".into(), "microphone".into()],
+                    hidden: false,
+                    ..VideoGrants::default()
+                },
+                EXTERNAL_TTL,
+            )
+        }
+        ParticipantRole::StudioGuest {
+            identity,
+            name,
+            room,
+        } => {
+            check_id(identity)?;
+            bound_room(Venue::Nebu, room)?;
+            (
+                identity.clone(),
+                name.clone(),
+                room.clone(),
+                VideoGrants {
+                    room_join: true,
+                    room: room.clone(),
+                    room_admin: false,
+                    can_publish: Some(true),
+                    can_subscribe: Some(true),
+                    can_publish_data: Some(false),
+                    can_publish_sources: vec!["camera".into(), "microphone".into()],
+                    hidden: false,
+                    ..VideoGrants::default()
+                },
+                EXTERNAL_TTL,
+            )
+        }
+        ParticipantRole::PropertyCamera {
+            identity,
+            name,
+            room,
+        } => {
+            check_id(identity)?;
+            bound_room(Venue::CasaBarra, room)?;
+            (
+                identity.clone(),
+                name.clone(),
+                room.clone(),
+                VideoGrants {
+                    room_join: true,
+                    room: room.clone(),
+                    room_admin: false,
+                    can_publish: Some(true),
+                    can_subscribe: Some(false),
+                    can_publish_data: Some(false),
+                    can_publish_sources: vec!["camera".into()],
                     hidden: false,
                     ..VideoGrants::default()
                 },
@@ -445,5 +508,62 @@ mod tests {
                 .verify(&jwt)
                 .is_ok()
         );
+    }
+
+    #[test]
+    fn studio_guest_can_hear_the_room_and_is_not_an_admin() {
+        let claims = claims(ParticipantRole::StudioGuest {
+            identity: "inv-1".into(),
+            name: "Alex".into(),
+            room: "nebu/studio".into(),
+        });
+        assert_eq!(claims.video.room, "nebu/studio");
+        assert!(!claims.video.room_admin);
+        assert!(!claims.video.hidden);
+        assert_eq!(claims.video.can_publish, Some(true));
+        assert_eq!(claims.video.can_subscribe, Some(true));
+        assert_eq!(claims.video.can_publish_data, Some(false));
+        assert_eq!(
+            claims.video.can_publish_sources,
+            vec!["camera".to_string(), "microphone".to_string()]
+        );
+        let config = config();
+        let err = issue(
+            &config,
+            &ParticipantRole::StudioGuest {
+                identity: "inv-1".into(),
+                name: "Alex".into(),
+                room: "casa/villa".into(),
+            },
+        )
+        .unwrap_err();
+        assert!(matches!(err, TokenError::Rejected));
+    }
+
+    #[test]
+    fn property_camera_publishes_video_only_into_a_casa_room() {
+        let claims = claims(ParticipantRole::PropertyCamera {
+            identity: "prop-1".into(),
+            name: "Pool".into(),
+            room: "casa/villa".into(),
+        });
+        assert_eq!(claims.video.room, "casa/villa");
+        assert!(!claims.video.room_admin);
+        assert!(!claims.video.hidden);
+        assert_eq!(claims.video.can_publish, Some(true));
+        assert_eq!(claims.video.can_subscribe, Some(false));
+        assert_eq!(claims.video.can_publish_data, Some(false));
+        assert_eq!(claims.video.can_publish_sources, vec!["camera".to_string()]);
+        let config = config();
+        let err = issue(
+            &config,
+            &ParticipantRole::PropertyCamera {
+                identity: "prop-1".into(),
+                name: "Pool".into(),
+                room: "nebu/studio".into(),
+            },
+        )
+        .unwrap_err();
+        assert!(matches!(err, TokenError::Rejected));
     }
 }

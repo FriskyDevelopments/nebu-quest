@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use nebu_telephony::{InputSource, PublicStatus, TelephonyNode, Venue};
+use nebu_telephony::{InputSource, InviteKind, PublicStatus, TelephonyNode, Venue};
 
 #[tauri::command]
 fn telephony_status(node: tauri::State<'_, TelephonyNode>) -> PublicStatus {
@@ -91,6 +91,38 @@ async fn telephony_invite(
 }
 
 #[tauri::command]
+async fn telephony_invite_as(
+    node: tauri::State<'_, TelephonyNode>,
+    room: String,
+    label: String,
+    kind: InviteKind,
+) -> Result<nebu_telephony::InviteTicket, String> {
+    node.invite_as(&room, &label, kind)
+        .await
+        .map_err(|err| err.to_string())
+}
+
+#[tauri::command]
+async fn telephony_concierge_start(
+    node: tauri::State<'_, TelephonyNode>,
+) -> Result<PublicStatus, String> {
+    node.start_concierge()
+        .await
+        .map_err(|err| err.to_string())?;
+    Ok(node.status())
+}
+
+#[tauri::command]
+async fn telephony_concierge_advance(
+    node: tauri::State<'_, TelephonyNode>,
+) -> Result<PublicStatus, String> {
+    node.advance_concierge()
+        .await
+        .map_err(|err| err.to_string())?;
+    Ok(node.status())
+}
+
+#[tauri::command]
 async fn telephony_mute_remote(
     node: tauri::State<'_, TelephonyNode>,
     identity: String,
@@ -126,6 +158,9 @@ fn main() {
             telephony_unpublish_video,
             telephony_set_source,
             telephony_invite,
+            telephony_invite_as,
+            telephony_concierge_start,
+            telephony_concierge_advance,
             telephony_mute_remote
         ])
         .run(tauri::generate_context!())

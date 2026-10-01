@@ -14,6 +14,9 @@
     "allow-telephony-unpublish-video",
     "allow-telephony-set-source",
     "allow-telephony-invite",
+    "allow-telephony-invite-as",
+    "allow-telephony-concierge-start",
+    "allow-telephony-concierge-advance",
     "allow-telephony-mute-remote"
   ]
 }
