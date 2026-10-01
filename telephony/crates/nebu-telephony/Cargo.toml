@@ -2,7 +2,7 @@
 name = "nebu-telephony"
 version = "0.1.0"
 edition = "2021"
-description = "NEBU LiveKit telephony. API secrets and room tokens stay in Rust."
+description = "Shared LiveKit telephony for Casa Barra and NEBU. Secrets and room tokens stay in Rust."
 license = "MIT"
 publish = false
 

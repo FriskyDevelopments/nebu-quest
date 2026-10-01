@@ -13,8 +13,11 @@ const errorOut = document.querySelector("#error");
 const feedsOut = document.querySelector("#feeds");
 const muteButton = document.querySelector("#mute");
 const shellNote = document.querySelector("#shell-note");
+const liveBadge = document.querySelector("#live-badge");
+const reservationShown = document.querySelector("#reservation-shown");
 
 let audioMuted = false;
+let venue = "nebu";
 
 function showError(error) {
   const text = error instanceof Error ? error.message : String(error ?? "");
@@ -23,24 +26,60 @@ function showError(error) {
 }
 
 function latencyLabel(status) {
-  if (status.signalLatencyMs == null) return "not measured";
+  if (!status || status.signalLatencyMs == null) return "not measured";
+  const parts = [];
+  if (status.audioLatencyMs != null) parts.push(`audio ${status.audioLatencyMs} ms`);
+  if (status.videoLatencyMs != null) parts.push(`video ${status.videoLatencyMs} ms`);
   const budget = status.withinLatencyBudget ? "within 500ms" : "over the 500ms budget";
-  return `${status.signalLatencyMs} ms, ${budget}`;
+  const detail = parts.length ? `${parts.join(", ")}, ` : `${status.signalLatencyMs} ms, `;
+  return detail + budget;
+}
+
+function applyVenue(next) {
+  const normalized = next === "casa-barra" ? "casa-barra" : "nebu";
+  const changed = normalized !== venue;
+  venue = normalized;
+  for (const button of document.querySelectorAll(".venue-switch")) {
+    button.classList.toggle("is-selected", button.dataset.venue === venue);
+  }
+  if (!changed) return;
+  const casa = venue === "casa-barra";
+  document.body.className = casa ? "venue-casa" : "venue-nebu";
+  document.querySelector("#mark").textContent = casa ? "CASA BARRA" : "NEBU";
+  document.querySelector("#title").textContent = casa ? "Concierge" : "Studio";
+  document.querySelector("#venue-label").textContent = casa ? "Casa Barra" : "NEBU";
+  document.querySelector("#status-heading").textContent = casa ? "Call" : "Connection";
+  document.querySelector("#controls-heading").textContent = casa ? "Desk" : "Broadcast";
+  document.querySelector("#room-label").textContent = casa ? "Property" : "Room";
+  document.querySelector("#connect").textContent = casa ? "Start concierge call" : "Go live";
+  document.querySelector("#invite-heading").textContent = casa ? "Guest" : "External camera";
+  document.querySelector("#label-caption").textContent = casa ? "Guest" : "Device";
+  document.querySelector("#invite-button").textContent = casa ? "Create guest code" : "Create invite code";
+  document.querySelector("#feeds-heading").textContent = casa ? "Call media" : "Feeds";
+  document.querySelector("#label-input").value = casa ? "Guest" : "iPhone";
+  document.querySelector("#room-input").value = casa ? "villa" : "studio";
+  document.querySelector("#identity-input").value = casa ? "desk" : "host";
 }
 
 function render(status) {
+  applyVenue(status.venue);
   audioMuted = Boolean(status.audioMuted);
   connection.textContent = status.connection;
+  liveBadge.classList.toggle("is-live", Boolean(status.live));
+  document.querySelector("#role").textContent = status.role || "—";
   roomOut.textContent = status.room || "—";
   identityOut.textContent = status.identity || "—";
-  hostOut.textContent = status.configured ? status.livekitHost : "not configured";
+  const configured = status.venue === "casa-barra" ? status.casaConfigured : status.nebuConfigured;
+  hostOut.textContent = configured ? status.livekitHost : "not configured";
   audioOut.textContent = status.audioMuted ? "muted" : "open";
   videoOut.textContent = status.videoPublished ? "published" : "no local video";
   sourceOut.textContent = status.inputSource;
   latencyOut.textContent = latencyLabel(status);
-  pairOut.textContent = status.pairBind
-    ? `${status.pairBind} /v1/pair`
-    : "not listening";
+  pairOut.textContent = status.pairBind ? `${status.pairBind} /v1/pair` : "not listening";
+  document.querySelector("#obs").textContent = status.obsLinked ? "linked" : "not connected";
+  reservationShown.textContent = status.reservationRef
+    ? `Desk reference ${status.reservationRef}`
+    : "No reservation book is connected.";
   muteButton.textContent = status.audioMuted ? "Unmute audio" : "Mute audio";
   errorOut.hidden = !status.lastError;
   if (status.lastError) errorOut.textContent = status.lastError;
@@ -48,14 +87,13 @@ function render(status) {
   for (const feed of status.feeds) {
     const item = document.createElement("li");
     const label = document.createElement("span");
-    const state = [
+    label.textContent = [
       feed.identity,
       feed.kind,
       feed.source,
       feed.subscribed ? "subscribed" : "published",
       feed.muted ? "muted" : "live",
     ].filter(Boolean).join(" · ");
-    label.textContent = state;
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = feed.muted ? "Unmute feed" : "Mute feed";
@@ -80,7 +118,13 @@ async function refresh() {
   render(await invoke("telephony_status"));
 }
 
-function bind() {
+function bindVenue(handler) {
+  for (const button of document.querySelectorAll(".venue-switch")) {
+    button.addEventListener("click", () => handler(button.dataset.venue));
+  }
+}
+
+function bindSession() {
   document.querySelector("#join").addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
@@ -143,15 +187,42 @@ function bind() {
       showError(error);
     }
   });
+
+  document.querySelector("#reservation").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      render(await invoke("telephony_set_reservation", {
+        reference: document.querySelector("#reservation-input").value,
+      }));
+      showError("");
+    } catch (error) {
+      showError(error);
+    }
+  });
 }
+
+applyVenue("nebu");
 
 if (!invoke) {
   shellNote.hidden = false;
   for (const control of document.querySelectorAll("button, input, select")) {
-    control.disabled = true;
+    if (!control.classList.contains("venue-switch")) control.disabled = true;
   }
+  bindVenue((next) => {
+    applyVenue(next);
+    document.querySelector("#code").textContent = "";
+  });
 } else {
-  bind();
+  bindVenue(async (next) => {
+    try {
+      render(await invoke("telephony_set_venue", { venue: next }));
+      document.querySelector("#code").textContent = "";
+      showError("");
+    } catch (error) {
+      showError(error);
+    }
+  });
+  bindSession();
   refresh().catch(showError);
   setInterval(() => {
     refresh().catch(showError);

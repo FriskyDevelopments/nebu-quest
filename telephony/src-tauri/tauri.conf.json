@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "NEBU Telephony",
+  "productName": "Casa Barra / NEBU",
   "version": "0.1.0",
   "identifier": "quest.nebu.telephony",
   "build": {
@@ -11,7 +11,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "NEBU Telephony",
+        "title": "Casa Barra / NEBU",
         "width": 960,
         "height": 720,
         "resizable": true

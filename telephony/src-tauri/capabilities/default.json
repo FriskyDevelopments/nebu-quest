@@ -8,6 +8,8 @@
     "allow-telephony-status",
     "allow-telephony-connect",
     "allow-telephony-disconnect",
+    "allow-telephony-set-venue",
+    "allow-telephony-set-reservation",
     "allow-telephony-mute",
     "allow-telephony-unpublish-video",
     "allow-telephony-set-source",

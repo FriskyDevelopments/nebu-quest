@@ -47,12 +47,26 @@ impl LiveKitConfig {
     }
 
     pub fn from_env() -> Result<Self, TokenError> {
-        let url = std::env::var("LIVEKIT_URL").map_err(|_| TokenError::MissingCredentials)?;
-        let api_key =
-            std::env::var("LIVEKIT_API_KEY").map_err(|_| TokenError::MissingCredentials)?;
-        let api_secret =
-            std::env::var("LIVEKIT_API_SECRET").map_err(|_| TokenError::MissingCredentials)?;
+        Self::from_prefixed_env_raw("LIVEKIT")
+    }
+
+    /// `CASA_BARRA_LIVEKIT_URL` or `NEBU_LIVEKIT_URL`, plus the matching key and secret.
+    pub fn from_prefixed_env(prefix: &str) -> Result<Self, TokenError> {
+        Self::from_prefixed_env_raw(&format!("{prefix}_LIVEKIT"))
+    }
+
+    fn from_prefixed_env_raw(prefix: &str) -> Result<Self, TokenError> {
+        let url =
+            std::env::var(format!("{prefix}_URL")).map_err(|_| TokenError::MissingCredentials)?;
+        let api_key = std::env::var(format!("{prefix}_API_KEY"))
+            .map_err(|_| TokenError::MissingCredentials)?;
+        let api_secret = std::env::var(format!("{prefix}_API_SECRET"))
+            .map_err(|_| TokenError::MissingCredentials)?;
         Self::new(url, api_key, api_secret)
+    }
+
+    pub(crate) fn shares_credentials(&self, other: &Self) -> bool {
+        self.api_key == other.api_key || self.api_secret == other.api_secret
     }
 
     pub fn signal_url(&self) -> &str {

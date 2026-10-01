@@ -287,8 +287,8 @@ const PAIR_FORM: &str = r#"<!DOCTYPE html>
 </head>
 <body>
 <main>
-  <h1>Pair this camera</h1>
-  <p>Enter the code shown on the NEBU studio. This page is the device that will publish.</p>
+  <h1>Pair this device</h1>
+  <p>Enter the code shown on the Casa Barra desk or the NEBU studio. This page is the device that will join.</p>
   <form id="pair">
     <label>Code <input name="code" autocomplete="off" maxlength="8" required></label>
     <button type="submit">Join</button>

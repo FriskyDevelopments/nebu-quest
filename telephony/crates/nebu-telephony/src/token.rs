@@ -3,6 +3,7 @@ use std::time::Duration;
 use livekit_api::access_token::{AccessToken, TokenVerifier, VideoGrants};
 
 use crate::config::LiveKitConfig;
+use crate::venue::{qualify_room, Venue};
 
 pub const STREAMER_TTL: Duration = Duration::from_secs(60 * 60);
 pub const EXTERNAL_TTL: Duration = Duration::from_secs(10 * 60);
@@ -26,6 +27,18 @@ pub enum ParticipantRole {
     },
     /// Hidden subscriber. No publish, no data channel.
     HeadlessSubscriber { identity: String, room: String },
+    /// Casa Barra desk. Voice and property video with one guest room. Not an admin.
+    Concierge {
+        identity: String,
+        name: String,
+        room: String,
+    },
+    /// Casa Barra guest. Bidirectional camera and microphone in one room only.
+    Guest {
+        identity: String,
+        name: String,
+        room: String,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -86,7 +99,7 @@ fn grants_for(
             room,
         } => {
             check_id(identity)?;
-            check_id(room)?;
+            bound_room(Venue::Nebu, room)?;
             (
                 identity.clone(),
                 name.clone(),
@@ -110,7 +123,7 @@ fn grants_for(
             room,
         } => {
             check_id(identity)?;
-            check_id(room)?;
+            bound_room(Venue::Nebu, room)?;
             (
                 identity.clone(),
                 name.clone(),
@@ -131,7 +144,7 @@ fn grants_for(
         }
         ParticipantRole::HeadlessSubscriber { identity, room } => {
             check_id(identity)?;
-            check_id(room)?;
+            bound_room(Venue::Nebu, room)?;
             (
                 identity.clone(),
                 identity.clone(),
@@ -149,8 +162,65 @@ fn grants_for(
                 HEADLESS_TTL,
             )
         }
+        ParticipantRole::Concierge {
+            identity,
+            name,
+            room,
+        } => {
+            check_id(identity)?;
+            bound_room(Venue::CasaBarra, room)?;
+            (
+                identity.clone(),
+                name.clone(),
+                room.clone(),
+                VideoGrants {
+                    room_join: true,
+                    room: room.clone(),
+                    room_admin: false,
+                    can_publish: Some(true),
+                    can_subscribe: Some(true),
+                    can_publish_data: Some(false),
+                    can_publish_sources: vec!["camera".into(), "microphone".into()],
+                    hidden: false,
+                    ..VideoGrants::default()
+                },
+                STREAMER_TTL,
+            )
+        }
+        ParticipantRole::Guest {
+            identity,
+            name,
+            room,
+        } => {
+            check_id(identity)?;
+            bound_room(Venue::CasaBarra, room)?;
+            (
+                identity.clone(),
+                name.clone(),
+                room.clone(),
+                VideoGrants {
+                    room_join: true,
+                    room: room.clone(),
+                    room_admin: false,
+                    can_publish: Some(true),
+                    can_subscribe: Some(true),
+                    can_publish_data: Some(false),
+                    can_publish_sources: vec!["camera".into(), "microphone".into()],
+                    hidden: false,
+                    ..VideoGrants::default()
+                },
+                EXTERNAL_TTL,
+            )
+        }
     };
     Ok(grants)
+}
+
+fn bound_room(venue: Venue, room: &str) -> Result<(), TokenError> {
+    match qualify_room(venue, room) {
+        Ok(qualified) if qualified == room => Ok(()),
+        _ => Err(TokenError::Rejected),
+    }
 }
 
 fn check_id(value: &str) -> Result<(), TokenError> {
@@ -188,12 +258,12 @@ mod tests {
         let claims = claims(ParticipantRole::Streamer {
             identity: "host".into(),
             name: "Host".into(),
-            room: "studio".into(),
+            room: "nebu/studio".into(),
         });
         assert_eq!(claims.sub, "host");
         assert!(claims.video.room_join);
         assert!(!claims.video.room_admin);
-        assert_eq!(claims.video.room, "studio");
+        assert_eq!(claims.video.room, "nebu/studio");
         assert_eq!(claims.video.can_publish, Some(true));
         assert_eq!(claims.video.can_subscribe, Some(true));
         assert_eq!(claims.video.can_publish_data, Some(true));
@@ -206,7 +276,7 @@ mod tests {
         let claims = claims(ParticipantRole::ExternalCamera {
             identity: "cam-1".into(),
             name: "iPhone".into(),
-            room: "studio".into(),
+            room: "nebu/studio".into(),
         });
         assert!(!claims.video.room_admin);
         assert_eq!(claims.video.can_publish, Some(true));
@@ -225,7 +295,7 @@ mod tests {
     fn headless_subscriber_is_hidden_and_cannot_publish() {
         let claims = claims(ParticipantRole::HeadlessSubscriber {
             identity: "studio-sub".into(),
-            room: "studio".into(),
+            room: "nebu/studio".into(),
         });
         assert!(!claims.video.room_admin);
         assert_eq!(claims.video.can_publish, Some(false));
@@ -243,7 +313,7 @@ mod tests {
             &ParticipantRole::Streamer {
                 identity: "host".into(),
                 name: "Host".into(),
-                room: "studio".into(),
+                room: "nebu/studio".into(),
             },
         )
         .unwrap();
@@ -252,7 +322,7 @@ mod tests {
             &ParticipantRole::ExternalCamera {
                 identity: "cam-1".into(),
                 name: "iPhone".into(),
-                room: "studio".into(),
+                room: "nebu/studio".into(),
             },
         )
         .unwrap();
@@ -272,7 +342,7 @@ mod tests {
             &ParticipantRole::Streamer {
                 identity: "host".into(),
                 name: "Host".into(),
-                room: "studio".into(),
+                room: "nebu/studio".into(),
             },
         )
         .unwrap();
@@ -297,5 +367,83 @@ mod tests {
         )
         .unwrap_err();
         assert!(matches!(err, TokenError::Rejected));
+    }
+
+    #[test]
+    fn a_nebu_role_cannot_enter_a_casa_room() {
+        let config = config();
+        let err = issue(
+            &config,
+            &ParticipantRole::Streamer {
+                identity: "host".into(),
+                name: "Host".into(),
+                room: "casa/villa".into(),
+            },
+        )
+        .unwrap_err();
+        assert!(matches!(err, TokenError::Rejected));
+    }
+
+    #[test]
+    fn concierge_and_guest_are_bidirectional_and_not_admins() {
+        let concierge = claims(ParticipantRole::Concierge {
+            identity: "desk".into(),
+            name: "Mariana".into(),
+            room: "casa/villa".into(),
+        });
+        assert!(!concierge.video.room_admin);
+        assert_eq!(concierge.video.room, "casa/villa");
+        assert_eq!(concierge.video.can_publish, Some(true));
+        assert_eq!(concierge.video.can_subscribe, Some(true));
+        assert_eq!(concierge.video.can_publish_data, Some(false));
+        assert_eq!(
+            concierge.video.can_publish_sources,
+            vec!["camera".to_string(), "microphone".to_string()]
+        );
+
+        let guest = claims(ParticipantRole::Guest {
+            identity: "guest-1".into(),
+            name: "Ana".into(),
+            room: "casa/villa".into(),
+        });
+        assert!(!guest.video.room_admin);
+        assert_eq!(guest.video.can_subscribe, Some(true));
+        assert_eq!(guest.video.can_publish_data, Some(false));
+        assert!(!guest.video.hidden);
+    }
+
+    #[test]
+    fn casa_token_does_not_verify_with_the_nebu_secret() {
+        let casa = LiveKitConfig::new(
+            "wss://casa.example",
+            "casa-api-key-9f3a",
+            "casa-secret-9f3a-isolated",
+        )
+        .unwrap();
+        let nebu = LiveKitConfig::new(
+            "wss://livekit.example",
+            "nebu-api-key-9f3a",
+            "nebu-secret-9f3a-isolated",
+        )
+        .unwrap();
+        let jwt = issue(
+            &casa,
+            &ParticipantRole::Guest {
+                identity: "guest-1".into(),
+                name: "Ana".into(),
+                room: "casa/villa".into(),
+            },
+        )
+        .unwrap();
+        assert!(
+            TokenVerifier::with_api_key(nebu.api_key(), nebu.api_secret())
+                .verify(&jwt)
+                .is_err()
+        );
+        assert!(
+            TokenVerifier::with_api_key(casa.api_key(), casa.api_secret())
+                .verify(&jwt)
+                .is_ok()
+        );
     }
 }

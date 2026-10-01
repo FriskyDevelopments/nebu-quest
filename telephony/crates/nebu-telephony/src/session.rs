@@ -14,6 +14,7 @@ use crate::plane::{
     InputSource, JoinRequest, JoinedRoom, MediaKind, MediaPlane, PlaneError, PlaneEvent,
 };
 use crate::token::{self, ParticipantRole, TokenError, EXTERNAL_TTL};
+use crate::venue::{qualify_room, Venue, VenueBook, VenueError};
 use crate::within_latency_budget;
 
 /// Media path budget from the telephony spec.
@@ -58,6 +59,18 @@ pub struct PublicStatus {
     pub pair_bind: Option<String>,
     pub livekit_host: Option<String>,
     pub last_error: Option<String>,
+    pub venue: Venue,
+    pub role: Option<String>,
+    pub live: bool,
+    pub casa_configured: bool,
+    pub nebu_configured: bool,
+    pub audio_latency_ms: Option<u64>,
+    pub video_latency_ms: Option<u64>,
+    pub reservation_ref: Option<String>,
+    /// No property-management system is connected. The reference is a desk note.
+    pub reservation_book: bool,
+    /// No OBS socket is opened from this process.
+    pub obs_linked: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -68,6 +81,8 @@ pub enum SessionError {
     MediaRuntimeUnavailable,
     #[error("livekit is not configured")]
     NotConfigured,
+    #[error("that room belongs to the other venue")]
+    WrongVenue,
     #[error("{0}")]
     Token(#[from] TokenError),
     #[error("{0}")]
@@ -90,6 +105,11 @@ struct StatusInner {
     pair_port: Option<u16>,
     pair_bind: Option<String>,
     last_error: Option<String>,
+    venue: Venue,
+    role: Option<String>,
+    audio_latency_ms: Option<u64>,
+    video_latency_ms: Option<u64>,
+    reservation_ref: Option<String>,
 }
 
 impl StatusInner {
@@ -110,6 +130,11 @@ impl StatusInner {
             pair_port: None,
             pair_bind: None,
             last_error: None,
+            venue: Venue::Nebu,
+            role: None,
+            audio_latency_ms: None,
+            video_latency_ms: None,
+            reservation_ref: None,
         }
     }
 }
@@ -153,7 +178,7 @@ impl TrackModerator for ApiModerator {
 }
 
 struct Inner {
-    config: Option<LiveKitConfig>,
+    book: VenueBook,
     plane: Mutex<Option<Arc<dyn MediaPlane>>>,
     moderator: Mutex<Option<Arc<dyn TrackModerator>>>,
     broker: InviteBroker,
@@ -171,14 +196,22 @@ pub struct TelephonyNode {
     inner: Arc<Inner>,
 }
 
+fn moderator_for(book: &VenueBook, venue: Venue) -> Option<Arc<dyn TrackModerator>> {
+    book.get(venue)
+        .cloned()
+        .map(|config| Arc::new(ApiModerator { config }) as Arc<dyn TrackModerator>)
+}
+
 impl TelephonyNode {
     pub fn new(config: Option<LiveKitConfig>) -> Self {
-        let moderator = config
-            .clone()
-            .map(|config| Arc::new(ApiModerator { config }) as Arc<dyn TrackModerator>);
+        Self::from_book(VenueBook::nebu_only(config))
+    }
+
+    pub fn from_book(book: VenueBook) -> Self {
+        let moderator = moderator_for(&book, Venue::Nebu);
         Self {
             inner: Arc::new(Inner {
-                config,
+                book,
                 plane: Mutex::new(default_plane()),
                 moderator: Mutex::new(moderator),
                 broker: InviteBroker::new(),
@@ -193,7 +226,15 @@ impl TelephonyNode {
     }
 
     pub fn from_env() -> Self {
-        Self::new(LiveKitConfig::from_env().ok())
+        match VenueBook::from_env() {
+            Ok(book) => Self::from_book(book),
+            Err(VenueError::NotIsolated) => {
+                let node = Self::from_book(VenueBook::empty());
+                node.inner.status.lock().expect("status").last_error =
+                    Some("livekit credentials are not isolated".into());
+                node
+            }
+        }
     }
 
     pub fn with_plane(self, plane: Arc<dyn MediaPlane>) -> Self {
@@ -211,8 +252,9 @@ impl TelephonyNode {
         let status = self.inner.status.lock().expect("status");
         let mut feeds = status.feeds.clone();
         feeds.sort_by(|a, b| (&a.identity, &a.track_sid).cmp(&(&b.identity, &b.track_sid)));
+        let venue = status.venue;
         PublicStatus {
-            configured: self.inner.config.is_some(),
+            configured: self.inner.book.configured(venue),
             connection: status.connection,
             room: status.room.clone(),
             identity: status.identity.clone(),
@@ -224,24 +266,84 @@ impl TelephonyNode {
             within_latency_budget: status.within_latency_budget,
             pair_port: status.pair_port,
             pair_bind: status.pair_bind.clone(),
-            livekit_host: self.inner.config.as_ref().map(|config| config.public_url()),
+            livekit_host: self.inner.book.get(venue).map(|config| config.public_url()),
             last_error: status.last_error.clone(),
+            venue,
+            role: status.role.clone(),
+            live: venue == Venue::Nebu && status.connection == ConnectionState::Connected,
+            casa_configured: self.inner.book.configured(Venue::CasaBarra),
+            nebu_configured: self.inner.book.configured(Venue::Nebu),
+            audio_latency_ms: status.audio_latency_ms,
+            video_latency_ms: status.video_latency_ms,
+            reservation_ref: status.reservation_ref.clone(),
+            reservation_book: false,
+            obs_linked: false,
         }
     }
 
+    pub async fn set_venue(&self, venue: Venue) -> Result<(), SessionError> {
+        let _gate = self.inner.gate.lock().await;
+        if self.active_venue() == venue {
+            return Ok(());
+        }
+        self.drop_room().await;
+        let generation = self.inner.next_generation.fetch_add(1, Ordering::SeqCst);
+        {
+            let mut status = self.inner.status.lock().expect("status");
+            status.generation = generation;
+            clear_session(&mut status);
+            status.venue = venue;
+            status.reservation_ref = None;
+        }
+        *self.inner.moderator.lock().expect("moderator") = moderator_for(&self.inner.book, venue);
+        Ok(())
+    }
+
+    pub async fn set_reservation_ref(&self, reference: &str) -> Result<(), SessionError> {
+        let _gate = self.inner.gate.lock().await;
+        if self.active_venue() != Venue::CasaBarra {
+            return Err(SessionError::WrongVenue);
+        }
+        let reference = reference.trim();
+        if reference.is_empty() {
+            self.inner.status.lock().expect("status").reservation_ref = None;
+            return Ok(());
+        }
+        if reference.len() > 64 || reference.contains(['\n', '\r']) {
+            return Err(SessionError::Call("rejected".into()));
+        }
+        self.reject_if_secret(reference)?;
+        self.inner.status.lock().expect("status").reservation_ref = Some(reference.to_owned());
+        Ok(())
+    }
+
     pub async fn connect(&self, room: &str, identity: &str) -> Result<(), SessionError> {
-        self.connect_role(ParticipantRole::Streamer {
-            identity: identity.trim().to_owned(),
-            name: identity.trim().to_owned(),
-            room: room.trim().to_owned(),
-        })
-        .await
+        let venue = self.active_venue();
+        let room = qualify_room(venue, room).map_err(|_| SessionError::WrongVenue)?;
+        let identity = identity.trim().to_owned();
+        let role = match venue {
+            Venue::Nebu => ParticipantRole::Streamer {
+                identity: identity.clone(),
+                name: identity,
+                room,
+            },
+            Venue::CasaBarra => ParticipantRole::Concierge {
+                identity: identity.clone(),
+                name: identity,
+                room,
+            },
+        };
+        self.connect_role(role).await
     }
 
     pub async fn connect_headless(&self, room: &str, identity: &str) -> Result<(), SessionError> {
+        if self.active_venue() != Venue::Nebu {
+            return Err(SessionError::WrongVenue);
+        }
+        let room = qualify_room(Venue::Nebu, room).map_err(|_| SessionError::WrongVenue)?;
         self.connect_role(ParticipantRole::HeadlessSubscriber {
             identity: identity.trim().to_owned(),
-            room: room.trim().to_owned(),
+            room,
         })
         .await
     }
@@ -330,26 +432,27 @@ impl TelephonyNode {
         room: &str,
         device_label: &str,
     ) -> Result<InviteTicket, SessionError> {
-        let config = self
-            .inner
-            .config
-            .clone()
-            .ok_or(SessionError::NotConfigured)?;
-        let room = room.trim();
-        self.reject_if_secret(room)?;
+        let venue = self.active_venue();
+        let config = self.active_config().ok_or(SessionError::NotConfigured)?;
+        let room = qualify_room(venue, room).map_err(|_| SessionError::WrongVenue)?;
+        self.reject_if_secret(&room)?;
         let name = clean_label(device_label)?;
         self.reject_if_secret(&name)?;
         for _ in 0..5 {
             let code = self.inner.broker.mint_code();
-            let identity = format!("cam-{code}");
-            let jwt = token::issue(
-                &config,
-                &ParticipantRole::ExternalCamera {
-                    identity,
+            let role = match venue {
+                Venue::Nebu => ParticipantRole::ExternalCamera {
+                    identity: format!("cam-{code}"),
                     name: name.clone(),
-                    room: room.to_owned(),
+                    room: room.clone(),
                 },
-            )?;
+                Venue::CasaBarra => ParticipantRole::Guest {
+                    identity: format!("guest-{code}"),
+                    name: name.clone(),
+                    room: room.clone(),
+                },
+            };
+            let jwt = token::issue(&config, &role)?;
             self.note_secret(&jwt);
             if let Some(ticket) =
                 self.inner
@@ -387,11 +490,10 @@ impl TelephonyNode {
 
     async fn connect_role(&self, role: ParticipantRole) -> Result<(), SessionError> {
         let _gate = self.inner.gate.lock().await;
-        let config = self
-            .inner
-            .config
-            .clone()
-            .ok_or(SessionError::NotConfigured)?;
+        let config = self.active_config().ok_or(SessionError::NotConfigured)?;
+        if role_venue(&role) != self.active_venue() {
+            return Err(SessionError::WrongVenue);
+        }
         let plane = self
             .inner
             .plane
@@ -402,9 +504,9 @@ impl TelephonyNode {
         let (identity, room) = match &role {
             ParticipantRole::Streamer { identity, room, .. }
             | ParticipantRole::ExternalCamera { identity, room, .. }
-            | ParticipantRole::HeadlessSubscriber { identity, room } => {
-                (identity.clone(), room.clone())
-            }
+            | ParticipantRole::HeadlessSubscriber { identity, room }
+            | ParticipantRole::Concierge { identity, room, .. }
+            | ParticipantRole::Guest { identity, room, .. } => (identity.clone(), room.clone()),
         };
         self.reject_if_secret(&identity)?;
         self.reject_if_secret(&room)?;
@@ -418,10 +520,13 @@ impl TelephonyNode {
             status.connection = ConnectionState::Connecting;
             status.room = Some(room.clone());
             status.identity = Some(identity.clone());
+            status.role = Some(role_label(&role).to_owned());
             status.last_error = None;
             status.feeds.clear();
             status.published_at.clear();
             status.signal_latency_ms = None;
+            status.audio_latency_ms = None;
+            status.video_latency_ms = None;
             status.within_latency_budget = false;
             status.latency_samples = 0;
             status.video_published = false;
@@ -561,8 +666,12 @@ impl TelephonyNode {
                         status.within_latency_budget = false;
                     }
                     status.latency_samples += 1;
-                    status.signal_latency_ms =
-                        Some(u64::try_from(latency.as_millis()).unwrap_or(u64::MAX));
+                    let millis = u64::try_from(latency.as_millis()).unwrap_or(u64::MAX);
+                    status.signal_latency_ms = Some(millis);
+                    match kind {
+                        MediaKind::Audio => status.audio_latency_ms = Some(millis),
+                        MediaKind::Video => status.video_latency_ms = Some(millis),
+                    }
                 }
                 upsert_feed(
                     &mut status.feeds,
@@ -612,11 +721,17 @@ impl TelephonyNode {
         }
     }
 
+    fn active_venue(&self) -> Venue {
+        self.inner.status.lock().expect("status").venue
+    }
+
+    fn active_config(&self) -> Option<LiveKitConfig> {
+        let venue = self.active_venue();
+        self.inner.book.get(venue).cloned()
+    }
+
     fn scrub(&self, text: &str) -> String {
-        let mut out = match &self.inner.config {
-            Some(config) => config.redact(text),
-            None => text.to_owned(),
-        };
+        let mut out = self.inner.book.redact_all(text);
         let secrets = self.inner.secrets.lock().expect("secrets");
         for secret in secrets.iter() {
             if secret.len() >= 8 {
@@ -646,6 +761,28 @@ fn clear_session(status: &mut StatusInner) {
     status.within_latency_budget = false;
     status.latency_samples = 0;
     status.last_error = None;
+    status.role = None;
+    status.audio_latency_ms = None;
+    status.video_latency_ms = None;
+}
+
+fn role_venue(role: &ParticipantRole) -> Venue {
+    match role {
+        ParticipantRole::Streamer { .. }
+        | ParticipantRole::ExternalCamera { .. }
+        | ParticipantRole::HeadlessSubscriber { .. } => Venue::Nebu,
+        ParticipantRole::Concierge { .. } | ParticipantRole::Guest { .. } => Venue::CasaBarra,
+    }
+}
+
+fn role_label(role: &ParticipantRole) -> &'static str {
+    match role {
+        ParticipantRole::Streamer { .. } => "streamer",
+        ParticipantRole::ExternalCamera { .. } => "camera",
+        ParticipantRole::HeadlessSubscriber { .. } => "headless",
+        ParticipantRole::Concierge { .. } => "concierge",
+        ParticipantRole::Guest { .. } => "guest",
+    }
 }
 
 fn clean_label(label: &str) -> Result<String, SessionError> {
@@ -902,7 +1039,12 @@ mod tests {
         node.connect("studio", "host").await.unwrap();
         let status = node.status();
         assert_eq!(status.signal_latency_ms, Some(120));
+        assert_eq!(status.video_latency_ms, Some(120));
+        assert!(status.audio_latency_ms.is_none());
         assert!(status.within_latency_budget);
+        assert!(status.live);
+        assert_eq!(status.role.as_deref(), Some("streamer"));
+        assert_eq!(status.room.as_deref(), Some("nebu/studio"));
         assert!(status.feeds[0].subscribed);
 
         let slow = scripted(vec![
@@ -913,6 +1055,32 @@ mod tests {
         node.connect("studio", "host").await.unwrap();
         let status = node.status();
         assert_eq!(status.signal_latency_ms, Some(500));
+        assert_eq!(status.video_latency_ms, Some(500));
+        assert!(!status.within_latency_budget);
+
+        let both = scripted(vec![
+            PlaneEvent::TrackPublished {
+                local: false,
+                identity: "cam-iphone".into(),
+                track_sid: "TR_mic".into(),
+                kind: MediaKind::Audio,
+                source: "microphone".into(),
+                at: start,
+            },
+            PlaneEvent::TrackSubscribed {
+                identity: "cam-iphone".into(),
+                track_sid: "TR_mic".into(),
+                kind: MediaKind::Audio,
+                at: start + Duration::from_millis(80),
+            },
+            published(start),
+            subscribed(start + Duration::from_millis(500)),
+        ]);
+        let node = TelephonyNode::new(Some(config())).with_plane(both);
+        node.connect("studio", "host").await.unwrap();
+        let status = node.status();
+        assert_eq!(status.audio_latency_ms, Some(80));
+        assert_eq!(status.video_latency_ms, Some(500));
         assert!(!status.within_latency_budget);
     }
 
@@ -1025,7 +1193,7 @@ mod tests {
         let claims = TokenVerifier::with_api_key("APItestkey9f3a", "lk-test-secret-9f3a")
             .verify(jwt)
             .unwrap();
-        assert_eq!(claims.video.room, "studio");
+        assert_eq!(claims.video.room, "nebu/studio");
         assert!(!claims.video.room_admin);
         let again = client
             .post(format!("http://127.0.0.1:{port}/v1/pair"))
@@ -1087,6 +1255,101 @@ mod tests {
         assert!(LiveKitConfig::new("wss://a:b@livekit.example", "key", "secretsecret").is_err());
         assert!(LiveKitConfig::new("ftp://livekit.example", "key", "secretsecret").is_err());
         assert!(LiveKitConfig::new("wss://livekit.example", "key", " ").is_err());
+    }
+
+    #[tokio::test]
+    async fn venues_keep_separate_secrets_rooms_and_roles() {
+        let casa = LiveKitConfig::new(
+            "wss://casa.example",
+            "casa-api-key-9f3a",
+            "casa-secret-9f3a-isolated",
+        )
+        .unwrap();
+        let book = VenueBook::new(Some(casa), Some(config())).unwrap();
+        let plane = scripted(Vec::new());
+        let node =
+            TelephonyNode::from_book(book).with_plane(Arc::clone(&plane) as Arc<dyn MediaPlane>);
+
+        let err = node
+            .invite_external("casa/villa", "phone")
+            .await
+            .unwrap_err();
+        assert!(matches!(err, SessionError::WrongVenue));
+
+        node.connect("studio", "host").await.unwrap();
+        assert!(node.status().live);
+        assert_eq!(
+            node.status().livekit_host.as_deref(),
+            Some("wss://livekit.example")
+        );
+        let nebu_jwt = plane.captured.lock().unwrap().clone().unwrap();
+        assert!(
+            TokenVerifier::with_api_key("casa-api-key-9f3a", "casa-secret-9f3a-isolated")
+                .verify(&nebu_jwt)
+                .is_err()
+        );
+
+        node.set_venue(Venue::CasaBarra).await.unwrap();
+        let status = node.status();
+        assert_eq!(status.connection, ConnectionState::Disconnected);
+        assert!(!status.live);
+        assert_eq!(status.livekit_host.as_deref(), Some("wss://casa.example"));
+        assert!(!status.obs_linked);
+        assert!(!status.reservation_book);
+
+        node.set_reservation_ref("HB-1042").await.unwrap();
+        assert_eq!(node.status().reservation_ref.as_deref(), Some("HB-1042"));
+        let err = node
+            .set_reservation_ref("casa-secret-9f3a-isolated")
+            .await
+            .unwrap_err();
+        assert!(!err.to_string().contains("casa-secret"));
+        assert_eq!(node.status().reservation_ref.as_deref(), Some("HB-1042"));
+
+        node.connect("villa", "desk").await.unwrap();
+        let casa_jwt = plane.captured.lock().unwrap().clone().unwrap();
+        let claims = TokenVerifier::with_api_key("casa-api-key-9f3a", "casa-secret-9f3a-isolated")
+            .verify(&casa_jwt)
+            .unwrap();
+        assert_eq!(claims.video.room, "casa/villa");
+        assert_eq!(claims.video.can_subscribe, Some(true));
+        assert_eq!(claims.video.can_publish_data, Some(false));
+        assert!(!claims.video.room_admin);
+        assert!(
+            TokenVerifier::with_api_key("APItestkey9f3a", "lk-test-secret-9f3a")
+                .verify(&casa_jwt)
+                .is_err()
+        );
+        let status = node.status();
+        assert_eq!(status.role.as_deref(), Some("concierge"));
+        assert!(!status.live);
+
+        let ticket = node.invite_external("villa", "Ana").await.unwrap();
+        let guest = node.inner.broker.peek_token(&ticket.code).unwrap();
+        let guest_claims =
+            TokenVerifier::with_api_key("casa-api-key-9f3a", "casa-secret-9f3a-isolated")
+                .verify(&guest)
+                .unwrap();
+        assert!(guest_claims.sub.starts_with("guest-"));
+        assert_eq!(guest_claims.video.room, "casa/villa");
+        assert_eq!(guest_claims.video.can_subscribe, Some(true));
+        assert!(
+            TokenVerifier::with_api_key("APItestkey9f3a", "lk-test-secret-9f3a")
+                .verify(&guest)
+                .is_err()
+        );
+
+        let json = serde_json::to_string(&node.status()).unwrap();
+        assert!(!json.contains("lk-test-secret"));
+        assert!(!json.contains("casa-secret"));
+        assert!(!json.contains(&casa_jwt));
+        assert!(!json.contains(&guest));
+        assert!(!json.contains("wss://livekit.example"));
+
+        node.set_venue(Venue::Nebu).await.unwrap();
+        assert!(node.status().reservation_ref.is_none());
+        let err = node.set_reservation_ref("HB-1").await.unwrap_err();
+        assert!(matches!(err, SessionError::WrongVenue));
     }
 
     #[test]

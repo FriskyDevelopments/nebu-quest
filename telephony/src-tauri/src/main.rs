@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use nebu_telephony::{InputSource, PublicStatus, TelephonyNode};
+use nebu_telephony::{InputSource, PublicStatus, TelephonyNode, Venue};
 
 #[tauri::command]
 fn telephony_status(node: tauri::State<'_, TelephonyNode>) -> PublicStatus {
@@ -14,6 +14,26 @@ async fn telephony_connect(
     identity: String,
 ) -> Result<PublicStatus, String> {
     node.connect(&room, &identity)
+        .await
+        .map_err(|err| err.to_string())?;
+    Ok(node.status())
+}
+
+#[tauri::command]
+async fn telephony_set_venue(
+    node: tauri::State<'_, TelephonyNode>,
+    venue: Venue,
+) -> Result<PublicStatus, String> {
+    node.set_venue(venue).await.map_err(|err| err.to_string())?;
+    Ok(node.status())
+}
+
+#[tauri::command]
+async fn telephony_set_reservation(
+    node: tauri::State<'_, TelephonyNode>,
+    reference: String,
+) -> Result<PublicStatus, String> {
+    node.set_reservation_ref(&reference)
         .await
         .map_err(|err| err.to_string())?;
     Ok(node.status())
@@ -100,6 +120,8 @@ fn main() {
             telephony_status,
             telephony_connect,
             telephony_disconnect,
+            telephony_set_venue,
+            telephony_set_reservation,
             telephony_mute,
             telephony_unpublish_video,
             telephony_set_source,
