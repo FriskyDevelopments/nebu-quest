@@ -4,8 +4,8 @@
  *   <main id="main">
  *     ... hero ...
  *     <div class="signal-strip" aria-hidden="true"><!-- mount --></div>
- *     <section id="features" aria-label="The studio"><!-- mount --></section>
- *     <section id="steps" aria-label="Your kind of live"><!-- mount --></section>
+ *     <section id="features" aria-label="The room"><!-- mount --></section>
+ *     <section id="steps" aria-label="Who it's for"><!-- mount --></section>
  *     <section id="faq" aria-label="Good to know"><!-- mount --></section>
  *   </main>
  *   <footer><!-- mount --></footer>
@@ -36,36 +36,36 @@
 
   const FEATURES = {
     picture: {
-      kicker: 'PICTURE / FIND YOUR FRAME',
-      title: 'You call\nthe shots.',
-      description: 'Choose your camera, share your screen, or line up a video. Preview your scene before it reaches the room.',
-      points: ['Camera and microphone setup', 'Screen sharing and video rundown', 'Local preview before sharing'],
-      label: '01 — PICTURE',
-      bottom: 'Prepare → Preview → Share'
+      kicker: 'FACE / THE SHOWCASE',
+      title: 'The face\nin the room.',
+      description: 'You are the showcase: camera, screen, or prepared video, previewed before it reaches the room. Set the scene once — it stays up when you step out.',
+      points: ['Camera, screen, or prepared video', 'Local preview before sharing', 'Shareable overlay via OBS or Boom'],
+      label: '01 — FACE',
+      bottom: 'Set the scene → Show your face'
     },
     sound: {
-      kicker: 'SOUND / SET THE MOOD',
-      title: 'Find your\nfrequency.',
-      description: 'Keep your voice and your video in balance. Adjust their audio independently while you prepare your scene.',
-      points: ['Choose your microphone', 'Adjust microphone and video volume', 'Prepare audio before sharing'],
-      label: '02 — SOUND',
-      bottom: 'Your voice. Your video. Your mix.'
+      kicker: 'LINEUP / HOLD THE ROOM',
+      title: 'Press play.\nWalk away.',
+      description: 'Line up your videos and balance voice against playback before anyone arrives. The lineup keeps playing while you are gone — Spotify stays on its own device.',
+      points: ['Queue prepared videos in order', 'Balance microphone and video volume', 'The lineup runs while you are out'],
+      label: '02 — LINEUP',
+      bottom: 'Line it up → It keeps playing'
     },
     people: {
-      kicker: 'PEOPLE / MAKE SOME ROOM',
-      title: 'A link.\nYour people.',
-      description: 'Give your next conversation a place to happen. Open a room and invite a small group to join you.',
-      points: ['Create or join a video room', 'Copy and share a room invitation', 'Add the room to your calendar'],
-      label: '03 — PEOPLE',
-      bottom: 'Open a room → Share the invitation'
+      kicker: 'DOOR / STAYS OPEN',
+      title: 'One link.\nZero policing.',
+      description: 'Open a room and share one invite link — new people keep joining while you are gone. Basic room order (mute, kick) holds the line without you.',
+      points: ['Create a room, share one invite', 'New people join while you are out', 'Basic order: mute and kick'],
+      label: '03 — DOOR',
+      bottom: 'Open the room → Share the invite'
     },
     record: {
-      kicker: 'RECORD / KEEP THE GOOD BITS',
-      title: 'Worth making.\nWorth keeping.',
-      description: 'Capture the output you choose and save the recording to your device. A take to keep, revisit or share later.',
-      points: ['Record your selected output', 'Start and stop from the studio', 'Download to your device'],
-      label: '04 — RECORD',
-      bottom: 'Record → Download → Keep'
+      kicker: 'RECAP / COME BACK TO',
+      title: 'Leave.\nReplay later.',
+      description: 'Record the output you choose and download it to your device. No auto-written summaries — you come back to the tape itself and catch up fast.',
+      points: ['Record your selected output', 'Start and stop from the studio', 'Download and revisit the tape'],
+      label: '04 — RECAP',
+      bottom: 'Record → Download → Recap'
     }
   };
 
@@ -169,7 +169,7 @@
         entry.target.classList.add('is-visible');
         io.unobserve(entry.target);
       });
-    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+    }, { rootMargin: '0px 0px -4% 0px', threshold: 0.08 });
     nodes.forEach((node) => io.observe(node));
     requestAnimationFrame(() => requestAnimationFrame(() => {
       nodes.forEach((node) => {
@@ -177,6 +177,177 @@
         if (r.top < window.innerHeight && r.bottom > 0) node.classList.add('is-visible');
       });
     }));
+    window.setTimeout(() => {
+      nodes.forEach((node) => node.classList.add('is-visible'));
+    }, 900);
+  }
+
+  function pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function formatClock(date) {
+    return pad2(date.getHours()) + ':' + pad2(date.getMinutes()) + ':' + pad2(date.getSeconds());
+  }
+
+  function wireClocks() {
+    const nodes = [...document.querySelectorAll('[data-nav-clock], [data-stage-clock]')];
+    if (!nodes.length) return;
+    const tick = () => {
+      const stamp = formatClock(new Date());
+      nodes.forEach((node) => {
+        node.textContent = stamp;
+        if (node.tagName === 'TIME') node.setAttribute('datetime', new Date().toISOString());
+      });
+    };
+    tick();
+    window.setInterval(tick, 1000);
+  }
+
+  function wireStudioHotkey() {
+    document.addEventListener('keydown', (event) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key !== 's' && event.key !== 'S') return;
+      const tag = (event.target && event.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (event.target && event.target.isContentEditable)) return;
+      event.preventDefault();
+      window.location.assign(STUDIO_URL);
+    });
+  }
+
+  function clamp01(v) {
+    return v < 0 ? 0 : v > 1 ? 1 : v;
+  }
+
+  function wireType() {
+    document.querySelectorAll('[data-split]').forEach((line) => {
+      const text = line.textContent;
+      if (!text) return;
+      line.setAttribute('aria-label', text);
+      line.replaceChildren();
+      [...text].forEach((ch, i) => {
+        const span = document.createElement('span');
+        span.className = 'char';
+        span.style.setProperty('--i', String(i));
+        span.textContent = ch === ' ' ? '\u00a0' : ch;
+        line.append(span);
+      });
+    });
+  }
+
+  function goLive() {
+    const root = document.documentElement;
+    if (root.classList.contains('is-live')) return;
+    root.classList.add('is-going-live');
+    window.setTimeout(() => {
+      root.classList.remove('is-standby', 'is-going-live');
+      root.classList.add('is-live');
+      const plate = document.getElementById('standby');
+      if (plate) plate.setAttribute('aria-hidden', 'true');
+    }, reduceMotion ? 0 : 720);
+  }
+
+  function wireBoot() {
+    const root = document.documentElement;
+    const count = document.querySelector('[data-standby-count]');
+    const skip = document.querySelector('.standby-skip');
+    if (reduceMotion) {
+      root.classList.remove('is-standby');
+      root.classList.add('is-live');
+      return;
+    }
+    let done = false;
+    const started = performance.now();
+    const tick = (now) => {
+      if (done) return;
+      const t = Math.min(1, (now - started) / 1280);
+      const n = String(Math.round(t * 100)).padStart(2, '0');
+      if (count) count.textContent = n;
+      root.style.setProperty('--boot', String(t));
+      if (t < 1) {
+        requestAnimationFrame(tick);
+        return;
+      }
+      done = true;
+      goLive();
+    };
+    const finish = () => {
+      if (done) return;
+      done = true;
+      if (count) count.textContent = '100';
+      root.style.setProperty('--boot', '1');
+      goLive();
+    };
+    if (skip) skip.addEventListener('click', finish, { once: true });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && root.classList.contains('is-standby')) finish();
+    });
+    const ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    Promise.race([
+      ready,
+      new Promise((resolve) => window.setTimeout(resolve, 900))
+    ]).then(() => requestAnimationFrame(tick));
+  }
+
+  function wireCursor() {
+    const fine = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const node = document.querySelector('.cursor');
+    if (!node || reduceMotion || !fine.matches) return;
+    node.hidden = false;
+    document.documentElement.classList.add('has-cursor');
+    let x = 0;
+    let y = 0;
+    let rx = 0;
+    let ry = 0;
+    let tx = window.innerWidth / 2;
+    let ty = window.innerHeight / 2;
+    document.addEventListener('pointermove', (event) => {
+      tx = event.clientX;
+      ty = event.clientY;
+      node.classList.toggle('is-hot', !!event.target.closest('a, button, [data-magnetic], summary'));
+    }, { passive: true });
+    const loop = () => {
+      x += (tx - x) * 0.38;
+      y += (ty - y) * 0.38;
+      rx += (tx - rx) * 0.16;
+      ry += (ty - ry) * 0.16;
+      node.style.setProperty('--x', x.toFixed(2) + 'px');
+      node.style.setProperty('--y', y.toFixed(2) + 'px');
+      node.style.setProperty('--rx', rx.toFixed(2) + 'px');
+      node.style.setProperty('--ry', ry.toFixed(2) + 'px');
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+
+  function wireMagnetic() {
+    if (reduceMotion) return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    document.querySelectorAll('[data-magnetic]').forEach((el) => {
+      el.addEventListener('pointermove', (event) => {
+        const r = el.getBoundingClientRect();
+        const dx = (event.clientX - (r.left + r.width / 2)) * 0.28;
+        const dy = (event.clientY - (r.top + r.height / 2)) * 0.28;
+        el.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)';
+      });
+      el.addEventListener('pointerleave', () => {
+        el.style.transform = '';
+      });
+    });
+  }
+
+  function wireHeroScroll() {
+    const hero = document.querySelector('.hero-stage');
+    if (!hero) return;
+    const apply = () => {
+      const r = hero.getBoundingClientRect();
+      const p = reduceMotion ? 0 : clamp01(-r.top / Math.max(r.height * 0.72, 1));
+      document.documentElement.style.setProperty('--scroll', p.toFixed(4));
+      document.documentElement.classList.toggle('is-scrolled', window.scrollY > 18);
+    };
+    apply();
+    window.addEventListener('scroll', apply, { passive: true });
+    window.addEventListener('resize', apply);
   }
 
   function wireMenu() {
@@ -377,8 +548,15 @@
   }
 
   function boot() {
+    wireType();
+    wireBoot();
+    wireCursor();
+    wireMagnetic();
+    wireHeroScroll();
     wireMenu();
     wireSmoothAnchors();
+    wireClocks();
+    wireStudioHotkey();
     const main = document.querySelector('main#main, #main');
     if (!main || mountsComplete()) {
       wireAll(document);

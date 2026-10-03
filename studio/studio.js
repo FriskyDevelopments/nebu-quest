@@ -17,7 +17,12 @@
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const W = 1280, H = 720, FPS = 30, MAX_PEOPLE = 4;
   const params = new URLSearchParams(location.search);
-  const SIGNAL = (($('meta[name="nebu-signal"]') || {}).content || '').replace(/\/$/, '');
+  const meta = (name) => (($(`meta[name="${name}"]`) || {}).content || '');
+  const SIGNAL = window.NEBU_SIGNAL = nebuSignalBase({
+    search: location.search,
+    hostname: location.hostname,
+    metas: { prod: meta('nebu-signal'), preview: meta('nebu-signal-preview') },
+  });
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const md = navigator.mediaDevices;
   const canCapture = !!(md && md.getUserMedia);
@@ -474,9 +479,20 @@
     }
   }
 
+  // Extension points for nebu.js (overlays, announcement banners, TTS in the mix, chat bubble).
+  const overlayHooks = [];
+  window.NebuStudio = {
+    size: () => ({ W, H }),
+    addOverlay(fn) { overlayHooks.push(fn); },
+    audio() { ensureAudio(); return { ac, recBus, sendBus, channels }; },
+    sendChat(text) { const room = state.room; if (room && room.ws && room.ws.readyState === 1) { room.ws.send(JSON.stringify({ type: 'chat', text })); return true; } return false; },
+    inRoom: () => Boolean(state.room),
+    myId: () => (state.room && state.room.me && state.room.me.id) || null,
+  };
   function render(t) {
     drawLocal(sctx, state.localLayout, t);
     drawTitle(sctx, t);
+    for (const fn of overlayHooks) { try { sctx.save(); fn(sctx, t, W, H); } catch { /* keep rendering */ } finally { sctx.restore(); } }
     if (state.layout === 'room') drawRoom(pctx, t);
     else pctx.drawImage(scene, 0, 0);
   }
@@ -588,16 +604,15 @@
     }
     async connect() {
       if (!SIGNAL) throw new Error('Rooms are not configured on this site.');
-      try {
-        const r = await fetch(`${SIGNAL}/ice`, { cache: 'no-store' });
-        if (r.ok) { const j = await r.json(); if (j.iceServers) { this.ice = j.iceServers; this.turn = !!j.turn; } }
-      } catch { /* STUN only */ }
+      // ICE (incl. short-lived TURN) arrives over the room WebSocket; /ice is retired.
       return new Promise((resolve, reject) => {
         const ws = new WebSocket(`${SIGNAL.replace(/^http/, 'ws')}/rooms/${encodeURIComponent(this.id)}/ws?name=${encodeURIComponent(this.name)}&role=${this.role}`);
         this.ws = ws;
         let settled = false;
         ws.onmessage = (e) => {
           let msg; try { msg = JSON.parse(e.data); } catch { return; }
+          if (msg.type === 'chat') window.dispatchEvent(new CustomEvent('nebu:chat', { detail: msg }));
+          if ((msg.type === 'welcome' || msg.type === 'ice-servers') && Array.isArray(msg.iceServers)) { this.ice = msg.iceServers; this.turn = !!msg.turn; }
           if (msg.type === 'welcome' && !settled) { settled = true; resolve(); }
           if (msg.type === 'full' && !settled) { settled = true; reject(new Error(`This room is full (${msg.max} connections).`)); }
           this.handle(msg);

@@ -1,0 +1,79 @@
+:root { --night: #0B001A; --night-2: #150A26; --paper: #F7F5F2; --violet: #9D00FF; --cyan: #00E5FF; --lime: #B7FF2A; --yellow: #FFD100; --pink: #FF2E88; --ink: #121212; --muted: #B9B0CC; --dim: #7E7492; --line: rgba(255,255,255,.1); --ease: cubic-bezier(.2,.8,.2,1); --display: "Bricolage Grotesque", Manrope, system-ui, sans-serif; --body: Manrope, system-ui, sans-serif; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: radial-gradient(900px 500px at 50% -10%, rgba(157,0,255,.28), transparent 60%), radial-gradient(700px 500px at 120% 110%, rgba(0,229,255,.1), transparent 60%), var(--night); color: var(--paper); font: 500 15px/1.4 var(--body); overflow: hidden; }
+.lv { height: 100dvh; display: grid; grid-template-rows: auto auto auto 1fr auto; max-width: 640px; margin: 0 auto; position: relative; }
+.lv-top { display: flex; align-items: center; gap: 10px; padding: calc(12px + env(safe-area-inset-top)) 16px 10px; }
+.lv-title { display: grid; margin-right: auto; } .lv-title b { font: 800 18px var(--display); } .lv-title span { font-size: 12px; color: var(--dim); }
+.lv-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: var(--pink); font: 800 11px var(--body); letter-spacing: .1em; }
+.lv-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--paper); animation: blink 1.4s infinite; } .lv-pill.is-off { background: rgba(255,255,255,.12); } .lv-pill.is-off i { animation: none; opacity: .4; }
+@keyframes blink { 50% { opacity: .3; } }
+.lv-count { font: 700 12px var(--body); padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,.08); }
+.lv-pin, .lv-announce { margin: 0 12px 8px; padding: 10px 12px; border-radius: 14px; display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.lv-pin { position: relative; overflow: hidden; align-items: flex-start; gap: 10px; padding: 10px 12px 11px; background: rgba(21,10,38,.82); border: 1px solid rgba(255,209,0,.28); box-shadow: 0 10px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transform-origin: top center; }
+.lv-pin::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(var(--yellow), var(--pink)); }
+.lv-pin-ico { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(255,209,0,.16); font-style: normal; font-size: 14px; }
+.lv-pin-body { display: grid; gap: 1px; min-width: 0; }
+.lv-pin-body em { font: 800 10.5px var(--body); font-style: normal; letter-spacing: .08em; text-transform: uppercase; color: var(--yellow); }
+.lv-pin-body span { font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.lv-pin.is-in { animation: pinIn .46s var(--ease) both; } .lv-pin.is-in .lv-pin-ico { animation: pinDrop .6s .12s cubic-bezier(.3,1.6,.5,1) both; }
+.lv-pin.is-out, .lv-announce.is-out { animation: pinOut .26s ease-in both; }
+@keyframes pinIn { from { opacity: 0; transform: translateY(-12px) scaleY(.85); filter: blur(4px); } }
+@keyframes pinDrop { from { transform: translateY(-14px) rotate(-35deg); opacity: 0; } }
+@keyframes pinOut { to { opacity: 0; transform: translateY(-8px) scaleY(.9); } }
+.lv-announce { background: linear-gradient(135deg, rgba(255,209,0,.25), rgba(157,0,255,.3)); border: 1px solid rgba(255,209,0,.45); }
+.lv-announce.is-in { animation: annIn .5s var(--ease); } @keyframes annIn { from { opacity: 0; transform: translateY(-10px) scale(.96); } }
+.b-nebu, .b-host { font-style: normal; font: 800 10px var(--body); letter-spacing: .08em; padding: 2px 7px; border-radius: 6px; background: var(--yellow); color: var(--ink); } .b-host { background: var(--cyan); }
+.lv-main { min-height: 0; display: grid; grid-template-rows: auto 1fr; padding: 0 12px; gap: 8px; }
+.lv-cards { display: grid; gap: 8px; }
+.card { border-radius: 18px; padding: 12px; background: rgba(21,10,38,.85); border: 1px solid var(--line); backdrop-filter: blur(10px); animation: annIn .4s var(--ease); }
+.card header { display: grid; margin-bottom: 8px; } .card header span { font: 800 10px var(--body); letter-spacing: .14em; color: var(--yellow); } .card header b { font: 800 17px var(--display); }
+.card footer { font-size: 11px; color: var(--dim); margin-top: 6px; }
+.opt { position: relative; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 11px 12px; margin-top: 6px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.05); color: var(--paper); font: 700 14px var(--body); overflow: hidden; cursor: pointer; transition: transform .15s var(--ease), border-color .2s; }
+.opt:active { transform: scale(.98); } .opt.is-mine { border-color: var(--yellow); }
+.opt i { position: absolute; inset: 0 auto 0 0; width: var(--w); background: linear-gradient(90deg, var(--violet), var(--cyan)); opacity: .5; transition: width .6s var(--ease); } .opt span, .opt em { position: relative; font-style: normal; }
+.card-queue ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.card-queue li { display: grid; grid-template-columns: 42px 1fr; gap: 10px; align-items: center; }
+.card-queue li.is-playing span b { color: var(--lime); }
+.card-queue li button { height: 42px; border: 0; border-radius: 12px; background: rgba(255,255,255,.07); color: var(--yellow); font: 800 11px var(--body); display: grid; place-items: center; cursor: pointer; } .card-queue li button em { font-style: normal; color: var(--paper); font-size: 12px; }
+.card-queue li span { display: grid; min-width: 0; } .card-queue li span b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; } .card-queue li span i { font-style: normal; font-size: 11px; color: var(--dim); }
+.lv-msgs { list-style: none; margin: 0; padding: 0 0 6px; overflow: auto; display: flex; flex-direction: column; gap: 6px; min-height: 0; mask-image: linear-gradient(transparent, #000 24px); }
+.lv-msg { display: grid; gap: 2px; padding: 8px 12px; border-radius: 16px 16px 16px 5px; background: rgba(255,255,255,.07); max-width: 86%; animation: mIn .3s var(--ease); }
+.lv-msg.is-quiet { animation: none; }
+@keyframes mIn { from { opacity: 0; transform: translateY(8px); } }
+.lv-msg.is-mine { align-self: flex-end; background: rgba(157,0,255,.32); border-radius: 16px 16px 5px 16px; }
+.lv-msg.is-nebu { background: linear-gradient(135deg, rgba(255,209,0,.2), rgba(157,0,255,.25)); border: 1px solid rgba(255,209,0,.35); }
+.lv-msg.is-host { border: 1px solid rgba(0,229,255,.35); }
+.lv-who { font: 800 12px var(--body); color: var(--muted); display: flex; gap: 6px; align-items: center; } .lv-text { overflow-wrap: anywhere; }
+.lv-float { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.fl { position: absolute; bottom: 120px; font-size: 30px; animation: fl 2.6s var(--ease) forwards; }
+@keyframes fl { 0% { transform: translate(0, 0) scale(.3) rotate(0); opacity: 0; } 12% { transform: translate(0, -20px) scale(1.2); opacity: 1; } 100% { transform: translate(var(--x), -60vh) scale(.9) rotate(var(--r)); opacity: 0; } }
+.lv-bottom { padding: 8px 12px calc(12px + env(safe-area-inset-bottom)); display: grid; gap: 8px; background: linear-gradient(transparent, rgba(11,0,26,.9) 30%); }
+.lv-react { display: flex; gap: 6px; }
+.lv-react button { flex: 1; border: 0; border-radius: 14px; padding: 8px 0; font-size: 21px; background: rgba(255,255,255,.06); cursor: pointer; transition: transform .15s var(--ease); }
+.lv-react button.is-hit { animation: hit .35s var(--ease); } @keyframes hit { 40% { transform: scale(1.3) rotate(-8deg); } }
+.lv-form { display: grid; grid-template-columns: 44px 1fr 44px; gap: 6px; }
+.lv-form input { background: rgba(0,0,0,.4); color: var(--paper); border: 1px solid rgba(255,255,255,.16); border-radius: 14px; padding: 12px 14px; font: 600 15px var(--body); min-width: 0; }
+.lv-form input:focus { outline: 2px solid var(--yellow); outline-offset: 1px; }
+.lv-mode, .lv-send { border: 0; border-radius: 14px; background: rgba(255,255,255,.08); color: var(--paper); font-size: 18px; cursor: pointer; } .lv-send { background: var(--yellow); color: var(--ink); font-weight: 800; }
+.lv-gate, .lv-ended { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(11,0,26,.92); backdrop-filter: blur(8px); padding: 24px; z-index: 5; text-align: center; }
+.lv-gate[hidden], .lv-ended[hidden] { display: none; }
+.lv-gate-card { max-width: 340px; display: grid; gap: 12px; justify-items: center; animation: annIn .5s var(--ease); }
+.lv-gate h1 { font: 800 44px/0.95 var(--display); margin: 8px 0 0; letter-spacing: -.02em; } .lv-gate h1 span { color: var(--yellow); }
+.lv-gate p { margin: 0; color: var(--muted); }
+.lv-gate form { display: grid; grid-template-columns: 1fr auto; gap: 6px; width: 100%; }
+.lv-gate input { background: rgba(0,0,0,.4); color: var(--paper); border: 1px solid rgba(255,255,255,.2); border-radius: 14px; padding: 13px 14px; font: 600 16px var(--body); min-width: 0; }
+.lv-gate button { border: 0; border-radius: 14px; padding: 0 18px; background: var(--yellow); color: var(--ink); font: 800 15px var(--body); cursor: pointer; }
+.lv-err { color: var(--pink); min-height: 1.2em; }
+.lv-ended h2 { font: 800 36px var(--display); margin: 0 0 6px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+@media (prefers-reduced-motion: reduce) { .lv-pin, .lv-pin *, .lv-announce { animation: none !important; } }
+/* Fixed grid rows so hidden notices don't shift the chat/footer rows */
+.lv-top { grid-row: 1; } .lv-pin { grid-row: 2; } .lv-announce { grid-row: 3; } .lv-main { grid-row: 4; min-height: 0; } .lv-bottom { grid-row: 5; }
+/* NEBU brand */
+.lv-mark { display: inline-grid; width: 30px; height: 24px; } .lv-mark svg { width: 100%; height: 100%; filter: drop-shadow(0 0 8px rgba(255,209,0,.3)); }
+.b-nebu { display: inline-flex; align-items: center; padding: 3px 7px; line-height: 1; }
+.b-nebu .nebu-wm svg { height: 8px; }
+.lv-pin-body em .nebu-wm svg { height: 8px; transform: translateY(0); }

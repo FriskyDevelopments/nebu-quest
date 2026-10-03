@@ -1,1 +1,1 @@
-{ "name": "nebu-rooms", "private": true, "scripts": { "dev": "wrangler dev", "deploy": "wrangler deploy" }, "devDependencies": { "wrangler": "^4.141.0" } }
+{"name":"nebu-rooms","private":true,"scripts":{"dev":"wrangler dev","deploy":"wrangler deploy"},"devDependencies":{"wrangler":"^4.141.0"},"dependencies":{"@mtcute/web":"^0.29.7","@tma.js/init-data-node":"^2.0.8"}}
