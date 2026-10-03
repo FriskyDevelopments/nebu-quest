@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Casa Barra / NEBU</title>
+  <link rel="stylesheet" href="telephony.css">
+</head>
+<body class="venue-nebu">
+  <header>
+    <p class="mark" id="mark">NEBU</p>
+    <h1 id="title">Studio</h1>
+    <div class="row venue-row">
+      <button type="button" class="venue-switch" data-venue="casa-barra">Casa Barra</button>
+      <button type="button" class="venue-switch is-selected" data-venue="nebu">NEBU</button>
+      <span id="live-badge" class="live-badge nebu-only">LIVE</span>
+    </div>
+  </header>
+  <p id="shell-note" class="note" hidden>
+    Open this page from the desktop app. The browser cannot reach LiveKit.
+  </p>
+  <main>
+    <section class="card" aria-labelledby="status-heading">
+      <h2 id="status-heading">Connection</h2>
+      <p id="connection" class="connection">disconnected</p>
+      <dl>
+        <div><dt>Desk</dt><dd id="venue-label">NEBU</dd></div>
+        <div><dt>Role</dt><dd id="role">—</dd></div>
+        <div><dt>Room</dt><dd id="room">—</dd></div>
+        <div><dt>Identity</dt><dd id="identity">—</dd></div>
+        <div><dt>LiveKit</dt><dd id="host">not configured</dd></div>
+        <div><dt>Audio</dt><dd id="audio">open</dd></div>
+        <div><dt>Video</dt><dd id="video">no local video</dd></div>
+        <div><dt>Source</dt><dd id="source">program</dd></div>
+        <div><dt>Latency</dt><dd id="latency">not measured</dd></div>
+        <div><dt>Pair</dt><dd id="pair">not listening</dd></div>
+        <div class="nebu-only"><dt>OBS</dt><dd id="obs">not connected</dd></div>
+      </dl>
+      <p id="error" class="error" hidden></p>
+    </section>
+    <section class="card" aria-labelledby="controls-heading">
+      <h2 id="controls-heading">Broadcast</h2>
+      <form id="join">
+        <label><span id="room-label">Room</span> <input id="room-input" name="room" value="studio" autocomplete="off" required></label>
+        <label>Identity <input id="identity-input" name="identity" value="host" autocomplete="off" required></label>
+        <div class="row">
+          <button type="submit" id="connect">Go live</button>
+          <button type="button" id="disconnect">Disconnect</button>
+        </div>
+      </form>
+      <div class="row">
+        <button type="button" id="mute">Mute audio</button>
+        <button type="button" id="unpublish">Unpublish video</button>
+      </div>
+      <label class="nebu-only">Input
+        <select id="source-select">
+          <option value="program">Program</option>
+          <option value="camera">Camera</option>
+          <option value="screen">Screen</option>
+          <option value="external">External camera</option>
+        </select>
+      </label>
+      <p class="hint nebu-only">OBS link: not connected. Source choices do not open a camera in this process.</p>
+    </section>
+    <section class="card casa-only" aria-labelledby="stay-heading">
+      <h2 id="stay-heading">Stay</h2>
+      <p class="hint">No reservation book is connected. This reference stays on this desk.</p>
+      <form id="reservation">
+        <label>Reservation reference <input id="reservation-input" name="reservation" autocomplete="off" placeholder="HB-1042"></label>
+        <button type="submit">Save reference</button>
+      </form>
+      <p id="reservation-shown"></p>
+    </section>
+    <section class="card casa-only" aria-labelledby="concierge-heading">
+      <h2 id="concierge-heading">Concierge script</h2>
+      <p class="hint" id="voice-note">Voice playback is not running. Read the prompt aloud at the desk.</p>
+      <p id="concierge-step">idle</p>
+      <p id="concierge-prompt" class="prompt">The script has not started.</p>
+      <div class="row">
+        <button type="button" id="concierge-start">Start script</button>
+        <button type="button" id="concierge-next">Next</button>
+      </div>
+    </section>
+    <section class="card" aria-labelledby="invite-heading">
+      <h2 id="invite-heading">External camera</h2>
+      <p class="hint" id="invite-hint">A phone on the same network cannot open 127.0.0.1 of this computer. Set <code>NEBU_PAIR_BIND</code> to this machine’s LAN address before launch, then open the pair page from that device.</p>
+      <form id="invite">
+        <label>Kind
+          <select id="invite-kind">
+            <option value="camera">Camera</option>
+            <option value="studio-guest">Studio guest</option>
+          </select>
+        </label>
+        <label><span id="label-caption">Name</span> <input id="label-input" name="label" value="iPhone" autocomplete="off"></label>
+        <button type="submit" id="invite-button">Create invite code</button>
+      </form>
+      <p id="code" class="code" aria-live="polite"></p>
+    </section>
+    <section class="card" aria-labelledby="feeds-heading">
+      <h2 id="feeds-heading">Feeds</h2>
+      <ul id="feeds"></ul>
+    </section>
+  </main>
+  <script src="telephony.js"></script>
+</body>
+</html>

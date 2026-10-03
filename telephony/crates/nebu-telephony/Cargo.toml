@@ -1,0 +1,27 @@
+[package]
+name = "nebu-telephony"
+version = "0.1.0"
+edition = "2021"
+description = "Shared LiveKit telephony for Casa Barra and NEBU. Secrets and room tokens stay in Rust."
+license = "MIT"
+publish = false
+
+[features]
+default = []
+# WebRTC room connection. Off by default so tests do not download libwebrtc.
+rtc = ["dep:livekit"]
+
+[dependencies]
+async-trait = "0.1"
+axum = "0.8"
+livekit-api = { version = "0.8.1", default-features = false, features = ["access-token", "services", "rustls-tls-webpki-roots"] }
+rand = "0.9"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net"] }
+url = "2"
+livekit = { version = "0.9.3", optional = true }
+
+[dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-webpki-roots"] }

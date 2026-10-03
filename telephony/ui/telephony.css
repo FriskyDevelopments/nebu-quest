@@ -1,0 +1,121 @@
+:root {
+  color-scheme: dark;
+  --night: #0b001a;
+  --yellow: #ffd100;
+  --paper: #f7f5f2;
+  --ink: #0b001a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--paper);
+  font: 16px/1.45 "Avenir Next", "Segoe UI", sans-serif;
+}
+
+header, main {
+  width: min(52rem, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+header { padding: 1.5rem 0 0.5rem; }
+
+.mark {
+  margin: 0;
+  color: var(--yellow);
+  letter-spacing: 0.18em;
+  font-size: 0.8rem;
+}
+
+h1 { margin: 0.2rem 0 0; font-size: 2rem; }
+
+main {
+  display: grid;
+  gap: 1rem;
+  padding-bottom: 2rem;
+}
+
+.card {
+  background: var(--paper);
+  color: var(--ink);
+  padding: 1rem 1.1rem 1.2rem;
+}
+
+h2 { margin: 0 0 0.6rem; font-size: 1rem; }
+
+.connection {
+  margin: 0 0 0.8rem;
+  font-size: 1.4rem;
+  text-transform: lowercase;
+}
+
+dl { display: grid; gap: 0.35rem; margin: 0; }
+dl div { display: grid; grid-template-columns: 7rem 1fr; gap: 0.5rem; }
+dt { color: #5c5670; }
+dd { margin: 0; }
+
+label { display: grid; gap: 0.25rem; margin-bottom: 0.7rem; }
+
+input, select, button { font: inherit; }
+
+input, select {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #d9d4cc;
+  background: white;
+  color: var(--ink);
+}
+
+.row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.7rem; }
+
+button {
+  background: var(--yellow);
+  color: var(--ink);
+  border: 0;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+}
+
+button:disabled { opacity: 0.45; cursor: default; }
+
+.note, .hint { font-size: 0.92rem; }
+.note { width: min(52rem, calc(100% - 2rem)); margin: 1rem auto; }
+.hint { margin-top: 0; }
+
+.code {
+  min-height: 2.4rem;
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: 0.28em;
+  color: var(--night);
+}
+
+.prompt {
+  min-height: 3.2rem;
+  margin: 0 0 0.8rem;
+  font-size: 1.15rem;
+}
+
+.error { color: #8c1d18; }
+
+#feeds { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+#feeds li { display: flex; justify-content: space-between; gap: 0.75rem; align-items: center; }
+
+.venue-row { align-items: center; }
+.venue-switch { background: transparent; color: var(--paper); border: 1px solid var(--yellow); }
+.venue-switch.is-selected { background: var(--yellow); color: var(--ink); }
+.live-badge {
+  display: none;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+}
+body.venue-nebu .live-badge.is-live { display: inline-block; background: var(--yellow); color: var(--ink); }
+body.venue-nebu .casa-only { display: none; }
+body.venue-casa .nebu-only { display: none; }
+body.venue-casa {
+  --night: #14221c;
+  --yellow: #e6d3b1;
+  --paper: #f6f1e8;
+}
