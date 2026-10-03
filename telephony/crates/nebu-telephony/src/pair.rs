@@ -170,18 +170,25 @@ pub struct PairServer {
     shutdown: Option<oneshot::Sender<()>>,
 }
 
+pub fn pair_router(broker: InviteBroker) -> Router {
+    Router::new()
+        .route("/v1/health", get(health))
+        .route("/v1/pair", get(pair_form).post(redeem))
+        .with_state(AppState {
+            broker,
+            hits: std::sync::Arc::new(Mutex::new(VecDeque::new())),
+        })
+}
+
 impl PairServer {
     pub async fn bind(broker: InviteBroker, addr: &str) -> std::io::Result<Self> {
+        Self::serve(pair_router(broker), addr).await
+    }
+
+    pub async fn serve(app: Router, addr: &str) -> std::io::Result<Self> {
         let listener = TcpListener::bind(addr).await?;
         let bound = listener.local_addr()?;
         let (tx, rx) = oneshot::channel();
-        let app = Router::new()
-            .route("/v1/health", get(health))
-            .route("/v1/pair", get(pair_form).post(redeem))
-            .with_state(AppState {
-                broker,
-                hits: std::sync::Arc::new(Mutex::new(VecDeque::new())),
-            });
         tokio::spawn(async move {
             let server = axum::serve(listener, app).with_graceful_shutdown(async move {
                 let _ = rx.await;

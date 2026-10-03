@@ -113,6 +113,8 @@ pub enum SessionError {
     NotConfigured,
     #[error("that room belongs to the other venue")]
     WrongVenue,
+    #[error("the NEBU studio is connected")]
+    StudioLive,
     #[error("{0}")]
     Token(#[from] TokenError),
     #[error("{0}")]
@@ -546,7 +548,13 @@ impl TelephonyNode {
         }
         drop(_gate);
         let bound = bind_addr_from_env();
-        let server = PairServer::bind(self.inner.broker.clone(), &bound)
+        let admin = crate::admin::AdminConfig::from_env();
+        if let Some(token) = admin.token() {
+            self.note_secret(token);
+        }
+        let app = crate::pair::pair_router(self.inner.broker.clone())
+            .merge(crate::admin::admin_router(self.clone(), admin));
+        let server = PairServer::serve(app, &bound)
             .await
             .map_err(|err| SessionError::Call(self.scrub(&err.to_string())))?;
         let port = server.port();
@@ -797,6 +805,24 @@ impl TelephonyNode {
             let drain = secrets.len() - 16;
             secrets.drain(0..drain);
         }
+    }
+
+    /// Casa Barra admin calls switch this process onto that desk.
+    /// A connected NEBU studio is left alone.
+    pub(crate) async fn engage_casa_desk(&self) -> Result<(), SessionError> {
+        if self.active_venue() == Venue::Nebu {
+            let connection = self.status().connection;
+            if matches!(
+                connection,
+                ConnectionState::Connecting
+                    | ConnectionState::Connected
+                    | ConnectionState::Reconnecting
+            ) {
+                return Err(SessionError::StudioLive);
+            }
+            self.set_venue(Venue::CasaBarra).await?;
+        }
+        Ok(())
     }
 
     fn active_venue(&self) -> Venue {
@@ -1663,6 +1689,217 @@ mod tests {
         assert_eq!(node.status().concierge_step, ConciergeStep::Idle);
         assert!(node.status().concierge_prompt.is_none());
         assert!(!node.status().voice_playback);
+    }
+
+    #[tokio::test]
+    async fn casa_admin_panel_controls_the_desk_without_room_tokens() {
+        let casa = LiveKitConfig::new(
+            "wss://casa.example",
+            "casa-api-key-9f3a",
+            "casa-secret-9f3a-isolated",
+        )
+        .unwrap();
+        let plane = scripted(Vec::new());
+        let node = TelephonyNode::from_book(VenueBook::new(Some(casa), Some(config())).unwrap())
+            .with_plane(Arc::clone(&plane) as Arc<dyn MediaPlane>);
+        node.connect("studio", "host").await.unwrap();
+
+        let desk = "casa-admin-token-9f3a";
+        let server = serve_admin(
+            node.clone(),
+            Some(desk),
+            Some("https://admin.casabarra.test"),
+        )
+        .await;
+        let base = format!("http://{}", server.local_addr());
+        let client = reqwest::Client::new();
+
+        let page = client
+            .get(format!("{base}/v1/admin/casa"))
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        assert!(page.contains("Admin desk"));
+        assert!(page.contains("Voice playback is not running"));
+        assert!(page.contains("No reservation book is connected"));
+        assert!(!page.contains(desk));
+        assert!(!page.contains("eyJ"));
+        assert!(!page.contains("lk-test-secret"));
+        assert!(!page.contains("casa-secret"));
+
+        let denied = client
+            .get(format!("{base}/v1/admin/casa/status"))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(denied.status(), reqwest::StatusCode::UNAUTHORIZED);
+
+        let blocked = client
+            .post(format!("{base}/v1/admin/casa/connect"))
+            .header("authorization", format!("Bearer {desk}"))
+            .json(&serde_json::json!({ "room": "villa", "identity": "desk" }))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(blocked.status(), reqwest::StatusCode::CONFLICT);
+        let blocked_body = blocked.text().await.unwrap();
+        assert!(blocked_body.contains("NEBU studio"));
+        assert!(!blocked_body.contains(desk));
+        assert_eq!(node.status().venue, Venue::Nebu);
+        assert_eq!(node.status().connection, ConnectionState::Connected);
+
+        node.disconnect().await.unwrap();
+        let studio_invite = client
+            .post(format!("{base}/v1/admin/casa/invite"))
+            .header("authorization", format!("Bearer {desk}"))
+            .json(&serde_json::json!({
+                "room": "studio",
+                "label": "Alex",
+                "kind": "studio-guest"
+            }))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(studio_invite.status(), reqwest::StatusCode::CONFLICT);
+        assert_eq!(node.status().venue, Venue::Nebu);
+
+        let stay = client
+            .post(format!("{base}/v1/admin/casa/reservation"))
+            .header("authorization", format!("Bearer {desk}"))
+            .header("origin", "https://admin.casabarra.test")
+            .json(&serde_json::json!({ "reference": "HB-1042" }))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(stay.status(), reqwest::StatusCode::OK);
+        assert_eq!(
+            stay.headers()
+                .get("access-control-allow-origin")
+                .and_then(|value| value.to_str().ok()),
+            Some("https://admin.casabarra.test")
+        );
+        let stay_json = stay.text().await.unwrap();
+        assert!(stay_json.contains("HB-1042"));
+        assert!(stay_json.contains("\"voicePlayback\":false"));
+        assert!(stay_json.contains("\"reservationBook\":false"));
+        assert!(!stay_json.contains("eyJ"));
+        assert!(!stay_json.contains(desk));
+        assert!(!stay_json.contains("casa-secret"));
+        assert!(!stay_json.contains("lk-test-secret"));
+        assert!(!stay_json.contains("wss://livekit.example"));
+        assert_eq!(node.status().venue, Venue::CasaBarra);
+
+        let foreign = client
+            .get(format!("{base}/v1/admin/casa/status"))
+            .header("authorization", format!("Bearer {desk}"))
+            .header("origin", "https://other.example")
+            .send()
+            .await
+            .unwrap();
+        assert!(foreign
+            .headers()
+            .get("access-control-allow-origin")
+            .is_none());
+
+        let started = client
+            .post(format!("{base}/v1/admin/casa/concierge/start"))
+            .header("authorization", format!("Bearer {desk}"))
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        assert!(started.contains("Mariana"));
+        assert!(!started.contains("casa-secret"));
+
+        let guest = client
+            .post(format!("{base}/v1/admin/casa/invite"))
+            .header("authorization", format!("Bearer {desk}"))
+            .json(&serde_json::json!({ "room": "villa", "label": "Ana", "kind": "guest" }))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(guest.status(), reqwest::StatusCode::OK);
+        let guest_json = guest.text().await.unwrap();
+        assert!(!guest_json.contains("eyJ"));
+        assert!(!guest_json.contains("token"));
+        let guest_ticket: serde_json::Value = serde_json::from_str(&guest_json).unwrap();
+        let guest_code = guest_ticket["code"].as_str().unwrap();
+        let guest_jwt = node.inner.broker.peek_token(guest_code).unwrap();
+        let guest_claims =
+            TokenVerifier::with_api_key("casa-api-key-9f3a", "casa-secret-9f3a-isolated")
+                .verify(&guest_jwt)
+                .unwrap();
+        assert!(guest_claims.sub.starts_with("guest-"));
+        assert_eq!(guest_claims.video.can_subscribe, Some(true));
+        assert!(
+            TokenVerifier::with_api_key("APItestkey9f3a", "lk-test-secret-9f3a")
+                .verify(&guest_jwt)
+                .is_err()
+        );
+
+        let property = client
+            .post(format!("{base}/v1/admin/casa/invite"))
+            .header("authorization", format!("Bearer {desk}"))
+            .json(&serde_json::json!({
+                "room": "villa",
+                "label": "Pool",
+                "kind": "property"
+            }))
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+        assert!(!property.contains("eyJ"));
+        let property_ticket: serde_json::Value = serde_json::from_str(&property).unwrap();
+        let property_jwt = node
+            .inner
+            .broker
+            .peek_token(property_ticket["code"].as_str().unwrap())
+            .unwrap();
+        let property_claims =
+            TokenVerifier::with_api_key("casa-api-key-9f3a", "casa-secret-9f3a-isolated")
+                .verify(&property_jwt)
+                .unwrap();
+        assert!(property_claims.sub.starts_with("prop-"));
+        assert_eq!(property_claims.video.can_subscribe, Some(false));
+        assert_eq!(
+            property_claims.video.can_publish_sources,
+            vec!["camera".to_string()]
+        );
+
+        let closed = serve_admin(TelephonyNode::new(None), None, None).await;
+        let closed_base = format!("http://{}", closed.local_addr());
+        let unavailable = client
+            .post(format!("{closed_base}/v1/admin/casa/concierge/start"))
+            .header("authorization", format!("Bearer {desk}"))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(
+            unavailable.status(),
+            reqwest::StatusCode::SERVICE_UNAVAILABLE
+        );
+        let unavailable_body = unavailable.text().await.unwrap();
+        assert!(unavailable_body.contains("not configured"));
+        assert!(!unavailable_body.contains(desk));
+    }
+
+    async fn serve_admin(
+        node: TelephonyNode,
+        token: Option<&str>,
+        origin: Option<&str>,
+    ) -> PairServer {
+        let app = crate::pair::pair_router(node.inner.broker.clone()).merge(
+            crate::admin::admin_router(node, crate::admin::AdminConfig::for_test(token, origin)),
+        );
+        PairServer::serve(app, "127.0.0.1:0").await.unwrap()
     }
 
     #[test]

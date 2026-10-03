@@ -9,9 +9,13 @@
 //!
 //! Casa Barra reads `CASA_BARRA_LIVEKIT_URL`, `CASA_BARRA_LIVEKIT_API_KEY`,
 //! and `CASA_BARRA_LIVEKIT_API_SECRET`. NEBU reads `NEBU_LIVEKIT_*`, or the
-//! older `LIVEKIT_*` names. The two secrets must differ. Build the desktop
-//! shell with `--features rtc` so it opens a real LiveKit room.
+//! older `LIVEKIT_*` names. The two secrets must differ. The Casa Barra admin
+//! panel calls this desk at `/v1/admin/casa` with `CASA_BARRA_ADMIN_TOKEN`.
+//! That call returns status, invite codes, and the script prompt. It does not
+//! return room JWTs. Build the desktop shell with `--features rtc` so it
+//! opens a real LiveKit room.
 
+mod admin;
 mod config;
 mod livekit_plane;
 mod pair;
