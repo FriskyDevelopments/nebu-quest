@@ -27,7 +27,8 @@ class MockAdapter {
   async logOut() { this.session = null; return true; }
   async savedStickerSets() { return [{ name: "StixMagicArcanum", title: "Stix Magic Arcanum (mock)", count: 50 }]; }
   async post() { return { mocked: true }; }
-  async goLive(peer) { return { mocked: true, peer, rtmpUrl: "rtmps://dc4-1.rtmp.t.me/s/", streamKey: "mock-key-not-real" }; }
+  async goLive() { return { mocked: true, mode: "mock" }; }
+  async videoChat() { return { ok: false, joined: false, active: false, mode: "mock", friendly: "Test mode cannot join a Telegram video chat." }; }
 }
 
 async function adapterFor(env, session) {
@@ -83,7 +84,8 @@ export class TgUser extends DurableObject {
       }
       if (op === "saved-sets") return out({ sets: await tg.savedStickerSets() });
       if (op === "post") return out(await tg.post(String(body.peer || ""), String(body.text || "").slice(0, 4000)));
-      if (op === "go-live") return out(await tg.goLive(String(body.peer || "")));
+      if (op === "go-live") return out(await tg.goLive(String(body.peer || ""), { revoke: body.revoke === true }));
+      if (op === "vc") return out(await tg.videoChat(String(body.action || "status"), body));
       return out({ error: "unknown_op" }, 404);
     } catch (e) {
       return out({ error: String(e.message || "telegram_error").slice(0, 60), friendly: e.friendly || "Telegram didn't accept that. Try again in a moment." }, e.message === "TG_API_NOT_CONFIGURED" ? 503 : 400);
