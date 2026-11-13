@@ -1,0 +1,71 @@
+# Code Pup uses the code-pup-by-frisky GitHub App.
+# This file is review policy. It does not install the App or allowlist the repo.
+# Activation (checked 2026-09-28) is only FriskyDevelopments/code-pup and
+# FriskyDevelopments/stix-mgic-vc-node. Add FriskyDevelopments/nebu-quest to
+# CODE_PUP_ALLOWED_REPOSITORIES or reviews never start, yaml or not.
+reviews:
+  auto_review:
+    enabled: true
+    skip_drafts: false
+  high_level_summary: false
+  collapse_walkthrough: false
+  request_changes_workflow: false
+  finishing_touches:
+    autofix:
+      enabled: false
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    fix_ci:
+      enabled: false
+    resolve_merge_conflict:
+      enabled: false
+  path_instructions:
+    - path: brand/nebu-signal.js
+      instructions: >-
+        ?signal= may only select a Worker origin already named in the page
+        meta tags, or a loopback origin when the page itself is loopback.
+        A preview link must not send the FRISKY ID session or Telegram
+        initData to an arbitrary host. Identify a concrete changed line.
+    - path: studio/studio.js
+      instructions: >-
+        The studio Worker base URL must come from nebuSignalBase. Do not
+        fall back to an unbounded query parameter. Room and auth fetches
+        use that base with the session token.
+    - path: viewer/live.js
+      instructions: >-
+        Live chat must use the same signal allowlist as the studio. Guest
+        join and Telegram initData must not be posted to a caller-chosen origin.
+    - path: worker/src/packs.js
+      instructions: >-
+        Signed /f/ URLs must only be minted for r2 keys that belong to that
+        pack, its stitch job, official packs, or the shared Telegram cache.
+        A pack manifest must not sign another owner's object key.
+    - path: worker/src/auth.js
+      instructions: >-
+        Handoff and session checks must stay fail-closed: bad HMAC, wrong
+        audience, or a stale token is a rejection. Session secrets must not
+        appear in responses or logs.
+    - path: worker/src/stitch.js
+      instructions: >-
+        Monthly design dispatch must call Hermes only when both
+        HERMES_STITCH_URL and HERMES_STITCH_SECRET are set; otherwise the
+        mock path runs. Callbacks must verify the HMAC before any write.
+        A failed job refunds the monthly slot. Do not treat a queued row
+        as a started Code Pup Design run.
+    - path: worker/src/telegram.js
+      instructions: >-
+        initData and Login Widget checks must reject forged or stale
+        payloads. Bot tokens must not be logged or returned.
+    - path: worker/src/**
+      instructions: >-
+        Prioritize auth bypass, cross-tenant pack or room access, and
+        unsigned callbacks. Keep preview and production Workers separate.
+knowledge_base:
+  code_guidelines:
+    filePatterns:
+      - docs/SPEC.md
+      - docs/stitch-hermes.md
+      - docs/SETUP-KEYS.md
+      - docs/DESIGN-STAGE2.md

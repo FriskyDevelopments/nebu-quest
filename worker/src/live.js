@@ -11,6 +11,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { validate, parse } from "@tma.js/init-data-node/web";
 import { sign, verify, randomId } from "./auth.js";
+import { linkTelegram, recordShow, recordStamp } from "./record.js";
 
 export const LIVE_SCHEMA = [
   `CREATE TABLE IF NOT EXISTS live_sessions (sid TEXT PRIMARY KEY, owner TEXT, owner_tg TEXT, status TEXT NOT NULL, created INTEGER, ended INTEGER)`,
@@ -46,7 +47,6 @@ export async function hostOf(env, sid, token) {
   return p && p.sid === sid && p.role === "host" ? p : null;
 }
 
-// Viewer auth. Telegram: initData HMAC (bot token) + auth_date freshness. Web: guest name.
 export async function authViewer(env, sid, body) {
   const s = await session(env, sid);
   if (!s || s.status !== "live") return { status: 410, body: { error: "session_ended", friendly: "This live chat has ended." } };
@@ -61,6 +61,7 @@ export async function authViewer(env, sid, body) {
     const startSid = d.start_param || d.startParam;
     if (startSid && startSid !== sid) return { status: 400, body: { error: "wrong_session" } };
     me = { uid: `tg_${u.id}`, name: clean([u.first_name || u.firstName, u.last_name || u.lastName].filter(Boolean).join(" ") || u.username || "Viewer", 40), via: "telegram", owner: Boolean(s.owner_tg && String(u.id) === s.owner_tg) };
+    if (s.owner) await linkTelegram(env, u.id, s.owner);
   } else {
     const name = clean(body && body.guest, 24);
     if (name.length < 2) return { status: 400, body: { error: "name_required", friendly: "Pick a name with at least 2 letters." } };
@@ -71,13 +72,15 @@ export async function authViewer(env, sid, body) {
 }
 
 export async function endLive(env, sid, rotate) {
-  await env.DB.prepare(`UPDATE live_sessions SET status = 'ended', ended = ?2 WHERE sid = ?1`).bind(sid, Date.now()).run();
+  const row = await env.DB.prepare(`SELECT sid, owner, created FROM live_sessions WHERE sid = ?1`).bind(sid).first();
+  const ended = Date.now();
+  await env.DB.prepare(`UPDATE live_sessions SET status = 'ended', ended = ?2 WHERE sid = ?1`).bind(sid, ended).run();
   const hub = env.LIVE.get(env.LIVE.idFromName(sid));
   await hub.fetch(new Request("https://hub/end", { method: "POST" })).catch(() => {});
+  await recordShow(env, { sid, host_id: row && row.owner, status: "ended", created: row && row.created, ended });
   return { ok: true };
 }
 
-// ---- Durable Object ----
 export class LiveHub extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
@@ -97,7 +100,8 @@ export class LiveHub extends DurableObject {
     if (s.ended) return new Response("ended", { status: 410 });
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ ...me, at: 0, n: 0, win: Date.now() });
+    const sid = url.pathname.split("/").filter(Boolean)[1] || "";
+    server.serializeAttachment({ ...me, sid, at: 0, n: 0, win: Date.now() });
     server.send(JSON.stringify({ type: "hello", me, pinned: s.pinned, poll: publicPoll(s.poll), queue: s.queue, slow: s.slow, history: s.history.slice(-30), viewers: this.viewers(), reactions: REACTIONS }));
     this.broadcast({ type: "presence", viewers: this.viewers() }, server);
     return new Response(null, { status: 101, webSocket: client });
@@ -107,8 +111,8 @@ export class LiveHub extends DurableObject {
     const now = Date.now();
     if (now - me.win > 60e3) { me.win = now; me.n = 0; }
     if (me.role !== "host") {
-      if (me.n + cost > 20) return false;           // 20 actions/minute per viewer
-      if (now - (me[lane] || 0) < Math.max(gap, slow * 1000)) return false; // min gap (slow mode raises it for chat)
+      if (me.n + cost > 20) return false;
+      if (now - (me[lane] || 0) < Math.max(gap, slow * 1000)) return false;
     }
     me.n += cost; me[lane] = now; ws.serializeAttachment(me); return true;
   }
@@ -140,7 +144,6 @@ export class LiveHub extends DurableObject {
         if (prev !== undefined) s.poll.counts[prev]--; s.poll.voters[me.uid] = i; s.poll.counts[i]++;
         this.broadcast({ type: "poll", poll: publicPoll(s.poll) }); break;
       }
-      // Host-only admin actions
       case "pin": if (!host) return; s.pinned = m.text ? { text: clean(m.text, 200), at: Date.now(), by: m.by === "nebu" ? "nebu" : "host" } : null; this.broadcast({ type: "pinned", pinned: s.pinned }); break;
       case "poll_open": {
         if (!host) return; const options = (m.options || []).map((o) => clean(o, 60)).filter(Boolean).slice(0, 4);
@@ -150,7 +153,7 @@ export class LiveHub extends DurableObject {
       case "poll_close": if (!host || !s.poll) return; s.poll.closed = true; this.broadcast({ type: "poll", poll: publicPoll(s.poll) }); break;
       case "queue_set": { if (!host) return; const it = s.queue.find((q) => q.id === m.id); if (!it) return; if (m.status === "remove") s.queue = s.queue.filter((q) => q.id !== m.id); else { for (const q of s.queue) if (q.status === "playing") q.status = "played"; it.status = clean(m.status, 10); } this.broadcast({ type: "queue", queue: s.queue }); break; }
       case "slow": if (!host) return; s.slow = Math.max(0, Math.min(60, Number(m.seconds) || 0)); this.broadcast({ type: "slowmode", slow: s.slow }); break;
-      case "announce": { if (!host) return; const msg = { type: "announce", id: randomId(6), text: clean(m.text, 300), at: Date.now() }; push({ ...msg, type: "chat", from: { name: "NEBU", host: true }, nebu: true }); this.broadcast(msg); break; }
+      case "announce": { if (!host) return; const msg = { type: "announce", id: randomId(6), text: clean(m.text, 300), at: Date.now() }; push({ ...msg, type: "chat", from: { name: "NEBU", host: true }, nebu: true }); this.broadcast(msg); await recordStamp(this.env, { id: msg.id, sid: me.sid, line: msg.text, stamped_by: me.uid }); break; }
       default: return;
     }
     await this.save(s);
@@ -160,7 +163,6 @@ export class LiveHub extends DurableObject {
 }
 function publicPoll(p) { return p ? { id: p.id, q: p.q, options: p.options, counts: p.counts, closed: p.closed, total: p.counts.reduce((a, b) => a + b, 0) } : null; }
 
-// Route handler used by index.js
 export async function handleLive(env, req, parts, url, user, json, ip, limited) {
   if (!liveConfig(env).enabled) return json({ error: "live_not_enabled" }, 503);
   if (parts.length === 1 && req.method === "POST") {

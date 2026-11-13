@@ -1,0 +1,4 @@
+[workspace]
+resolver = "2"
+members = ["crates/nebu-telephony", "src-tauri"]
+default-members = ["crates/nebu-telephony"]

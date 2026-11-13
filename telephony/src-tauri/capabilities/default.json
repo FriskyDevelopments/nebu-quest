@@ -1,0 +1,22 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Studio controls for LiveKit telephony. Commands return status and invite codes, never room tokens.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "allow-telephony-status",
+    "allow-telephony-connect",
+    "allow-telephony-disconnect",
+    "allow-telephony-set-venue",
+    "allow-telephony-set-reservation",
+    "allow-telephony-mute",
+    "allow-telephony-unpublish-video",
+    "allow-telephony-set-source",
+    "allow-telephony-invite",
+    "allow-telephony-invite-as",
+    "allow-telephony-concierge-start",
+    "allow-telephony-concierge-advance",
+    "allow-telephony-mute-remote"
+  ]
+}
