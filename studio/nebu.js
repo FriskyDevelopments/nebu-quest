@@ -61,6 +61,7 @@
       </div></details>
       <details class="acc-i" data-acc="packs"><summary><span>My packs</span><i>Saved on NEBU storage</i></summary><div class="acc-b" id="packs-b"></div></details>
       <details class="acc-i" data-acc="account"><summary><span>Account</span><i id="acct-sum">FRISKY ID</i></summary><div class="acc-b" id="acct-b"></div></details>
+      <details class="acc-i" data-acc="vc"><summary><span>VC node</span><i>Your NEBU · Discord · stream · numbers</i></summary><div class="acc-b" id="vc-b"><p class="src-note">Loading…</p></div></details>
     </div>
   </section>`);
   $('.st-side').appendChild(panel);
@@ -290,7 +291,7 @@
     const m = location.hash.match(/nebu_handoff=([^&]+)/);
     if (m) { history.replaceState(null, '', location.pathname + location.search); try { const r = await api('/auth/exchange', { method: 'POST', body: { token: decodeURIComponent(m[1]) } }); session = r.session; store.set('nebu:session', session); } catch { toast("Sign-in didn't complete. Try again."); } }
     if (session) { try { me = (await api('/auth/me')).user; } catch { session = null; store.set('nebu:session', null); } }
-    renderAccount(); renderPacks();
+    renderAccount(); renderPacks(); await renderVc();
   }
 
   // ---------------- Chat bubble ----------------
@@ -423,11 +424,184 @@
   // Help tab (Chatwoot merges here instead of a second bubble, when configured)
   const cw = ($('meta[name="nebu-help"]') || {}).content; if (cw) { $('#nb-help-tab').hidden = false; $('#nb-help').src = cw; }
 
+  // ---------------- VC node ----------------
+  let vcId = store.get('nebu:tenant', '');
+  const b64url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  async function pkce() {
+    const raw = crypto.getRandomValues(new Uint8Array(32));
+    const verifier = b64url(raw);
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+    return { verifier, challenge: b64url(new Uint8Array(digest)) };
+  }
+  function oauthBack(provider) {
+    const u = new URL(location.href); u.search = ''; u.hash = '';
+    return u.toString();
+  }
+  async function startOAuth(provider) {
+    const id = provider === 'spotify' ? (CFG.spotify && CFG.spotify.clientId) : (CFG.google && CFG.google.clientId);
+    if (!id) { toast(provider === 'spotify' ? 'Spotify is not connected on this node.' : 'Drive is not connected on this node.'); return; }
+    const { verifier, challenge } = await pkce();
+    sessionStorage.setItem('nebu:pkce', JSON.stringify({ provider, verifier }));
+    const u = new URL(provider === 'spotify' ? 'https://accounts.spotify.com/authorize' : 'https://accounts.google.com/o/oauth2/v2/auth');
+    u.searchParams.set('client_id', id);
+    u.searchParams.set('response_type', 'code');
+    u.searchParams.set('redirect_uri', oauthBack());
+    u.searchParams.set('code_challenge_method', 'S256');
+    u.searchParams.set('code_challenge', challenge);
+    u.searchParams.set('state', provider);
+    u.searchParams.set('scope', provider === 'spotify' ? 'user-read-currently-playing user-read-email' : 'openid email');
+    location.href = u.toString();
+  }
+  async function finishOAuth() {
+    const q = new URLSearchParams(location.search);
+    const code = q.get('code'), state = q.get('state');
+    if (!code || (state !== 'spotify' && state !== 'drive')) return '';
+    history.replaceState(null, '', location.pathname + location.hash);
+    let saved; try { saved = JSON.parse(sessionStorage.getItem('nebu:pkce') || 'null'); } catch { saved = null; }
+    sessionStorage.removeItem('nebu:pkce');
+    if (!saved || saved.provider !== state) return 'That sign-in did not match this tab.';
+    try {
+      if (state === 'spotify') {
+        if (!CFG.spotify || !CFG.spotify.clientId) return 'Spotify is not connected on this node.';
+        const body = new URLSearchParams({ client_id: CFG.spotify.clientId, grant_type: 'authorization_code', code, redirect_uri: oauthBack(), code_verifier: saved.verifier });
+        const tok = await fetch('https://accounts.spotify.com/api/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+        const tj = await tok.json();
+        if (!tok.ok) return tj.error_description || 'Spotify refused the code.';
+        const meR = await fetch('https://api.spotify.com/v1/me', { headers: { Authorization: `Bearer ${tj.access_token}` } });
+        const who = await meR.json();
+        const now = await fetch('https://api.spotify.com/v1/me/player/currently-playing', { headers: { Authorization: `Bearer ${tj.access_token}` } });
+        let title = '';
+        if (now.status === 200) { const n = await now.json(); const t = n.item; if (t) title = `${t.name} — ${(t.artists || []).map((a) => a.name).join(', ')}`; }
+        if (session) await api('/connect/spotify', { method: 'PUT', body: { id: who.id || '', name: title || who.display_name || 'Spotify', email: who.email || '' } });
+        return title ? `Spotify now playing: ${title}. Audio stays in Spotify. The decks still use local files.` : 'Spotify is linked. Nothing is playing. Audio is not captured.';
+      }
+      if (!CFG.google || !CFG.google.clientId) return 'Drive is not connected on this node.';
+      const body = new URLSearchParams({ client_id: CFG.google.clientId, grant_type: 'authorization_code', code, redirect_uri: oauthBack(), code_verifier: saved.verifier });
+      const tok = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+      const tj = await tok.json();
+      if (!tok.ok) return tj.error_description || 'Google refused the code.';
+      const info = await (await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${tj.access_token}` } })).json();
+      if (session) await api('/connect/drive', { method: 'PUT', body: { id: info.sub || '', email: info.email || '', name: info.email || 'Google' } });
+      return info.email ? `Drive account noted: ${info.email}. Takes still download to this device.` : 'Drive linked.';
+    } catch (e) { return e.message || 'Sign-in did not finish.'; }
+  }
+  async function renderVc() {
+    const box = $('#vc-b'); if (!box) return;
+    const S = CFG.stage2 || {};
+    const modes = S.modes || {};
+    if (!me) {
+      box.innerHTML = `<p class="src-note">Sign in with FRISKY ID to use the VC node.</p>
+        <p class="src-note">Your NEBU on a second Telegram account. A Discord bot you bring. Video chat status (this worker does not join a call). RTMP out, with a real key shown once. A phone number for that second account. Spotify now-playing text and a Drive account link. A Paperclip seat link. Credits in test mode. Vellum stays off, there is no virtual camera, and the extension guide does not click or sign in for you.</p>`;
+      return;
+    }
+    let profile = null, err = '';
+    try { profile = await api('/me/nebu'); } catch (e) { err = e.message; }
+    const list = (profile && profile.nebu) || [];
+    if (!vcId || !list.some((n) => n.id === vcId)) vcId = (list[0] && list[0].id) || '';
+    const mine = list.find((n) => n.id === vcId) || null;
+    const secrets = (profile && profile.secrets && profile.secrets[vcId]) || {};
+    const links = (profile && profile.links) || {};
+    box.innerHTML = `
+      ${err ? `<p class="src-note">${esc(err)}</p>` : ''}
+      <div class="row2">${list.length ? '' : `<button class="btn btn-yellow btn-mini" id="vc-create" type="button">Create my NEBU</button>`}
+        ${mine ? `<span class="mono">${esc(mine.name)}</span>` : '<span class="quiet">No NEBU yet.</span>'}</div>
+      <p class="src-note">One NEBU per FRISKY ID. It runs on a second Telegram account, not your personal one.</p>
+      <p class="sub-h mono">Telegram API app</p>
+      <p class="src-note">${secrets.telegram_api ? `Saved · api_id ${esc(secrets.telegram_api.apiId || '')}` : 'Paste api_id and api_hash from my.telegram.org, logged in as the second account.'}</p>
+      <div class="row2"><input id="vc-api-id" inputmode="numeric" placeholder="api_id" aria-label="Telegram api_id"><input id="vc-api-hash" placeholder="api_hash" aria-label="Telegram api_hash" autocomplete="off"></div>
+      <button class="btn btn-mini" id="vc-api-save" type="button">Save API app</button>
+      <p class="sub-h mono">Second account</p>
+      <p class="src-note" id="vc-tg-note">${mine && mine.tg_user ? `Connected · @${esc(mine.tg_user.username || mine.tg_user.id)} · ${esc(modes.telegramUser || 'mock')}` : `Not connected · mode ${esc(modes.telegramUser || 'mock')}. Test mode only accepts +99966 and five digits, code 22222.`}</p>
+      <div class="row2"><input id="vc-phone" placeholder="+9996612345" aria-label="Phone"><button class="btn btn-mini" id="vc-code" type="button">Send code</button></div>
+      <div class="row2"><input id="vc-otp" placeholder="Code" aria-label="Login code"><button class="btn btn-mini" id="vc-signin" type="button">Sign in</button></div>
+      <input id="vc-2fa" placeholder="2FA password, if asked" aria-label="2FA password" autocomplete="off">
+      <button class="btn btn-mini" id="vc-out" type="button">Log the second account out</button>
+      <p class="sub-h mono">Discord bot</p>
+      <p class="src-note">${secrets.discord_bot ? `Bot @${esc(secrets.discord_bot.bot || '')} · token ${esc(secrets.discord_bot.token || '')}` : 'Paste the bot token, Application ID, and Public Key. NEBU checks them with Discord before saving.'}</p>
+      <input id="vc-d-token" placeholder="Bot token" aria-label="Discord bot token" autocomplete="off">
+      <div class="row2"><input id="vc-d-app" placeholder="Application ID" aria-label="Discord application id"><input id="vc-d-key" placeholder="Public key" aria-label="Discord public key"></div>
+      <button class="btn btn-mini" id="vc-d-save" type="button">Connect Discord</button>
+      <p class="sub-h mono">Video chat</p>
+      <p class="src-note">Joining a Telegram call as a participant is not in this worker. The check below reports the real state and will not say you are in the call unless the runtime confirms it.</p>
+      <button class="btn btn-mini" id="vc-call" type="button">Check video chat</button>
+      <p class="src-note" id="vc-call-note"></p>
+      <p class="sub-h mono">RTMP out</p>
+      <p class="src-note">Opens a Telegram stream on the second account. Test mode does not return a key. A real key is shown once, then only masked.</p>
+      <div class="row2"><input id="vc-peer" placeholder="@group or id" aria-label="Telegram group"><button class="btn btn-yellow btn-mini" id="vc-live" type="button">Open stream</button><button class="btn btn-mini" id="vc-rot" type="button">Rotate key</button></div>
+      <p class="src-note" id="vc-rtmp-note"></p>
+      <p class="sub-h mono">Phone number</p>
+      <p class="src-note">For the second account only. Telegram often rejects VoIP ranges. Buying stays off unless this node enables it. A mock result is labeled and is not a carrier number.</p>
+      <div class="row2"><button class="btn btn-mini" id="vc-num-search" type="button">Search numbers</button><button class="btn btn-mini" id="vc-num-code" type="button">Check SMS code</button><button class="btn btn-mini" id="vc-num-drop" type="button">Release</button></div>
+      <div id="vc-nums"></div>
+      <p class="sub-h mono">Spotify and Drive</p>
+      <p class="src-note">${S.spotify ? 'Spotify links now-playing text only. NEBU does not record or restream that audio.' : 'Spotify is not connected on this node.'} ${links.spotify ? `Linked: ${esc(links.spotify.name || '')}` : ''}</p>
+      <div class="row2"><button class="btn btn-mini" id="vc-sp" type="button" ${S.spotify ? '' : 'disabled'}>Link Spotify</button><button class="btn btn-mini" id="vc-drive" type="button" ${S.drive ? '' : 'disabled'}>Link Drive</button></div>
+      <p class="src-note">${S.drive ? 'Drive stores the account email. Recordings still download to this device.' : 'Drive is not connected on this node.'} ${links.drive ? `Linked: ${esc(links.drive.email || links.drive.name || '')}` : ''}</p>
+      <p class="sub-h mono">Paperclip seat</p>
+      <p class="src-note">Saves the seat id and a masked suffix, then opens clip.friskydev.com. Budgets stay in Paperclip. ${links.paperclip ? `Linked ${esc(links.paperclip.name || '')}` : ''}</p>
+      <div class="row2"><input id="vc-seat" placeholder="FRSKY-PC-…" aria-label="Paperclip seat key"><button class="btn btn-mini" id="vc-seat-save" type="button">Link seat</button><a class="btn btn-mini" href="https://clip.friskydev.com" target="_blank" rel="noopener">Open desk</a></div>
+      <p class="sub-h mono">Credits</p>
+      <p class="src-note" id="vc-credits">Loading credits…</p>
+      <p class="sub-h mono">Assistant, virtual cam, extension</p>
+      <p class="src-note">${S.assistant ? 'The assistant flag is on. NEBU does not start a container from this page.' : 'Vellum is switched off.'} A browser cannot expose the program as a camera. Use the clean room feed as an OBS Browser Source. A Chrome guide may point at Telegram Web buttons. It does not click, type, or sign in.</p>`;
+    const need = () => { if (!vcId) { toast('Create a NEBU first.'); return false; } return true; };
+    const say = (id, text) => { const n = $(id); if (n) n.textContent = text; };
+    if ($('#vc-create')) $('#vc-create').onclick = async () => { try { const r = await api('/me/nebu', { method: 'POST', body: { name: 'My NEBU' } }); vcId = r.id; store.set('nebu:tenant', vcId); toast('NEBU created.'); renderVc(); } catch (e) { toast(e.message); } };
+    $('#vc-api-save').onclick = async () => { if (!need()) return; try { await api(`/me/nebu/${vcId}/telegram-api`, { method: 'PUT', body: { apiId: $('#vc-api-id').value.trim(), apiHash: $('#vc-api-hash').value.trim() } }); toast('API app saved.'); renderVc(); } catch (e) { toast(e.message); } };
+    $('#vc-code').onclick = async () => { if (!need()) return; try { await api(`/me/nebu/${vcId}/tg/send-code`, { method: 'POST', body: { phone: $('#vc-phone').value.trim() } }); say('#vc-tg-note', 'Code sent. Enter it below.'); } catch (e) { say('#vc-tg-note', e.message); } };
+    $('#vc-signin').onclick = async () => {
+      if (!need()) return;
+      try {
+        const pw = $('#vc-2fa').value;
+        const r = await api(`/me/nebu/${vcId}/tg/${pw ? 'password' : 'sign-in'}`, { method: 'POST', body: pw ? { password: pw } : { code: $('#vc-otp').value.trim() } });
+        say('#vc-tg-note', r.step === 'password' ? `Telegram wants the 2FA password${r.hint ? ` (${r.hint})` : ''}.` : 'Second account connected.');
+        if (r.step === 'done') renderVc();
+      } catch (e) { say('#vc-tg-note', e.message); }
+    };
+    $('#vc-out').onclick = async () => { if (!need()) return; try { await api(`/me/nebu/${vcId}/tg/logout`, { method: 'POST', body: {} }); toast('Logged out.'); renderVc(); } catch (e) { toast(e.message); } };
+    $('#vc-d-save').onclick = async () => { if (!need()) return; try { const r = await api(`/me/nebu/${vcId}/discord`, { method: 'PUT', body: { token: $('#vc-d-token').value.trim(), appId: $('#vc-d-app').value.trim(), publicKey: $('#vc-d-key').value.trim() } }); toast(r.discord ? `Discord @${r.discord.bot} connected.` : 'Discord saved.'); renderVc(); } catch (e) { toast(e.message); } };
+    $('#vc-call').onclick = async () => { if (!need()) return; try { const r = await api(`/me/nebu/${vcId}/tg/vc`, { method: 'POST', body: { action: 'status' } }); say('#vc-call-note', r.joined ? 'In the video chat.' : (r.friendly || 'Not in a video chat.')); } catch (e) { say('#vc-call-note', e.message); } };
+    const goLive = async (revoke) => {
+      if (!need()) return;
+      try {
+        const r = await api(`/me/nebu/${vcId}/tg/go-live`, { method: 'POST', body: { peer: $('#vc-peer').value.trim(), revoke } });
+        if (r.mocked || !r.ok) { say('#vc-rtmp-note', r.friendly || 'No stream.'); return; }
+        say('#vc-rtmp-note', `URL ${r.rtmpUrl} · key ${r.streamKey} · copy it now. The next view is masked.`);
+      } catch (e) { say('#vc-rtmp-note', e.message); }
+    };
+    $('#vc-live').onclick = () => goLive(false);
+    $('#vc-rot').onclick = () => goLive(true);
+    $('#vc-num-search').onclick = async () => {
+      if (!need()) return;
+      try {
+        const r = await api(`/me/nebu/${vcId}/numbers/search`);
+        const host = $('#vc-nums');
+        host.innerHTML = (r.numbers || []).map((n) => `<div class="row2"><span class="mono">${esc(n.e164)} ${n.mock ? '· mock' : ''}</span><button class="btn btn-mini" type="button" data-buy="${esc(n.e164)}">Buy</button></div>`).join('') || '<p class="quiet">No numbers.</p>';
+        if (r.mock) host.insertAdjacentHTML('afterbegin', '<p class="src-note">Mock list. Nothing was bought from a carrier.</p>');
+        host.querySelectorAll('[data-buy]').forEach((b) => b.onclick = async () => { try { const out = await api(`/me/nebu/${vcId}/numbers`, { method: 'POST', body: { e164: b.dataset.buy } }); toast(out.number && out.number.mock ? 'Mock number saved. Not a carrier line.' : 'Number saved.'); } catch (e) { toast(e.message); } });
+      } catch (e) { toast(e.message); }
+    };
+    $('#vc-num-code').onclick = async () => { if (!need()) return; try { const r = await api(`/me/nebu/${vcId}/numbers/code`, { method: 'POST', body: {} }); toast(r.code ? `Code ${r.code}` : (r.friendly || 'No code.')); } catch (e) { toast(e.message); } };
+    $('#vc-num-drop').onclick = async () => { if (!need()) return; try { await api(`/me/nebu/${vcId}/numbers`, { method: 'DELETE' }); toast('Released.'); } catch (e) { toast(e.message); } };
+    $('#vc-sp').onclick = () => startOAuth('spotify');
+    $('#vc-drive').onclick = () => startOAuth('drive');
+    $('#vc-seat-save').onclick = async () => { try { await api('/connect/paperclip', { method: 'PUT', body: { seat: $('#vc-seat').value.trim() } }); toast('Paperclip seat linked.'); renderVc(); } catch (e) { toast(e.message); } };
+    try {
+      const bal = await api('/billing/balance');
+      const tiers = (bal.catalog && bal.catalog.tiers) || [];
+      const c = bal.credits || {};
+      $('#vc-credits').textContent = `Credits · extra requests ${c.request || 0}, bigger sets ${c.set_plus || 0}, design systems ${c.design_system || 0}. Checkout is test mode only. ${tiers.map((t) => `${t.label}: ${t.priceLabel}${t.available ? '' : ' (not on sale)'}`).join(' · ') || 'No priced tiers.'}`;
+    } catch (e) { $('#vc-credits').textContent = e.message; }
+  }
+
   // ---------------- Boot ----------------
   (async () => {
     try { CFG = await (await fetch(`${SIGNAL}/config`)).json(); } catch { CFG = {}; }
     docked = !!store.get(dockKey(), false); $('#nb-dock').setAttribute('aria-pressed', String(docked));
-    await auth(); docked = !!store.get(dockKey(), docked);
+    await auth();
+    const oauthNote = await finishOAuth();
+    if (oauthNote) { toast(oauthNote); renderVc(); }
+    docked = !!store.get(dockKey(), docked);
     loadSets(); renderQueue(); renderPoll(); renderLive();
     if (liveInfo) connectHub();
     if (isPhone()) $('#nb-dock').hidden = true;
