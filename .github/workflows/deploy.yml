@@ -11,6 +11,23 @@ jobs:
       - uses: actions/checkout@v4
       - name: Stage static site (no build, just a file copy)
         run: ./scripts/stage.sh
+      - name: Preflight Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=""
+          if [ -z "${CLOUDFLARE_API_TOKEN//[[:space:]]/}" ]; then
+            missing="${missing:+$missing, }CLOUDFLARE_API_TOKEN"
+          fi
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID//[[:space:]]/}" ]; then
+            missing="${missing:+$missing, }CLOUDFLARE_ACCOUNT_ID"
+          fi
+          if [ -n "$missing" ]; then
+            echo "Deploy preflight failed. Missing GitHub Actions secret(s): ${missing}."
+            echo "Set the named secret(s) in repository Actions secrets. CLOUDFLARE_API_TOKEN needs Pages edit on the nebu-quest project. This step never prints secret values."
+            exit 1
+          fi
       - name: Deploy to Pages
         uses: cloudflare/wrangler-action@v3
         with:

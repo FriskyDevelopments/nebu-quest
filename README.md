@@ -80,7 +80,7 @@ Camera, mic and screen need a secure context: `localhost` works, a LAN IP over p
 
 ## Deploy
 
-- Site: `./scripts/stage.sh` then `wrangler pages deploy dist --project-name nebu-quest` (add `--branch <name>` for a preview, `--branch main` for production). The GitHub workflow does the production deploy on push to `main` once the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` Actions secrets exist (they do not yet, so those runs fail).
+- Site: `./scripts/stage.sh` then `wrangler pages deploy dist --project-name nebu-quest` (add `--branch <name>` for a preview, `--branch main` for production). The GitHub workflow deploys production only on push to `main`. It needs Actions secrets `CLOUDFLARE_API_TOKEN` (Pages edit on the `nebu-quest` project) and `CLOUDFLARE_ACCOUNT_ID`. The preflight names whichever of those is missing and does not print values. The Worker xAI allowance path needs `XAI_API_KEY` and `AI_ALLOWANCE_PROVIDER`. Names only: [DEPLOY.md](DEPLOY.md#required-secret-and-environment-names).
 - Rooms: `cd worker && npx wrangler deploy` (Worker `nebu-rooms` on workers.dev). TURN is optional: set `TURN_KEY_ID` and `TURN_KEY_API_TOKEN` with `wrangler secret put`.
 
 See [DEPLOY.md](DEPLOY.md) for preview, promotion and rollback.

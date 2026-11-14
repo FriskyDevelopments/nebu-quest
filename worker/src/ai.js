@@ -17,6 +17,7 @@ const PROVIDERS = {
   anthropic: { gw: "anthropic/v1/messages", direct: "https://api.anthropic.com/v1/messages", model: "claude-3-5-haiku-latest" },
 };
 const UNITS_PER_CALL = 1; // 1 allowance unit = one short assist call (<= 300 output tokens)
+const PROVIDER_TIMEOUT_MS = 20_000; // stall deadline so a hung provider socket rejects instead of holding the request
 const month = () => new Date().toISOString().slice(0, 7);
 const TASKS = {
   "lower-third": (i) => `Write 3 short lower-third options for a live stream. Each: a name line (max 28 chars) and a title line (max 40 chars). Plain text, no emojis, no hype. Context: ${i}`,
@@ -82,12 +83,12 @@ async function callOpenAICompat(env, provider, key, messages) {
   const p = PROVIDERS[provider];
   const url = env.AI_GATEWAY_ID && env.CF_ACCOUNT_ID ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.AI_GATEWAY_ID}/${p.gw}` : p.direct;
   if (provider === "anthropic") {
-    const r = await fetch(url, { method: "POST", headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "Content-Type": "application/json" }, body: JSON.stringify({ model: p.model, max_tokens: 300, system: messages[0].content, messages: messages.slice(1) }) });
+    const r = await fetch(url, { method: "POST", headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "Content-Type": "application/json" }, body: JSON.stringify({ model: p.model, max_tokens: 300, system: messages[0].content, messages: messages.slice(1) }), signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS) });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error("provider_failed");
     return { text: (d.content || []).map((c) => c.text || "").join(""), tin: d.usage?.input_tokens || 0, tout: d.usage?.output_tokens || 0 };
   }
-  const r = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: p.model, messages, max_tokens: 300 }) });
+  const r = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: p.model, messages, max_tokens: 300 }), signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS) });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error("provider_failed");
   return { text: d.choices?.[0]?.message?.content || "", tin: d.usage?.prompt_tokens || 0, tout: d.usage?.completion_tokens || 0 };

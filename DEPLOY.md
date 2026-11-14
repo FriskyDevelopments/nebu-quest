@@ -35,6 +35,22 @@ The `nebu-rooms` Worker is already live on workers.dev and allows the
 work on production without another Worker deploy. No DNS changes in either
 direction.
 
+## Required secret and environment names
+
+Names only. Put values in GitHub Actions secrets or Wrangler secrets. Do not commit them, and do not print them in logs.
+
+GitHub Actions, used by `.github/workflows/deploy.yml` (push to `main` only):
+
+- `CLOUDFLARE_API_TOKEN` — needs Pages edit on the `nebu-quest` project
+- `CLOUDFLARE_ACCOUNT_ID`
+
+The workflow preflight runs before Wrangler and exits with the missing name. It does not print the value.
+
+Worker `nebu-rooms`, for the xAI allowance path:
+
+- `XAI_API_KEY`
+- `AI_ALLOWANCE_PROVIDER` — set to `xai` to send allowance calls to xAI
+
 ## Rollback
 
 ```bash
