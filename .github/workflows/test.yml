@@ -1,0 +1,16 @@
+name: Tests
+on:
+  pull_request:
+jobs:
+  worker-unit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run worker unit tests
+        working-directory: worker
+        run: npm test
